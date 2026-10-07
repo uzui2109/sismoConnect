@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Alertas personalizadas del usuario (la app usa esta colección).
+    match /alertas/{alertId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Colección que usa la pantalla de prueba de Firestore.
+    match /test/{documentId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
