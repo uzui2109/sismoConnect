@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Public profile images. Only the owner can write, and only the two known
+    // image slots, with a hard 2 MiB limit and an image MIME type.
+    match /users/{userId}/profile/{fileName} {
+      allow read: if true;
+      allow write: if signedIn()
+        && request.auth.uid == userId
+        && (fileName == 'avatar.jpg' || fileName == 'cover.jpg')
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+  }
+}

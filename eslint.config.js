@@ -6,5 +6,11 @@ module.exports = defineConfig([
   expoConfig,
   {
     ignores: ["dist/*"],
+  },
+  {
+    files: ["src/hooks/**/*.ts", "src/app/profile/edit.tsx"],
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
   }
 ]);

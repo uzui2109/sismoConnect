@@ -45,7 +45,28 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-build-properties",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SismoConnect usa tus fotos para el avatar y la portada del perfil.",
+          "cameraPermission": "SismoConnect usa la cámara para tomar una foto de perfil."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0B4F8A"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ]
   }
 }

@@ -1,0 +1,6 @@
+module.exports = {
+  testEnvironment: 'node',
+  roots: ['<rootDir>/tests'],
+  testMatch: ['**/*.rules.test.js'],
+  testTimeout: 30_000,
+};

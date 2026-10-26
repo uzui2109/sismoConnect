@@ -1,0 +1,587 @@
+================================================================================
+SISMOCONNECT
+DOCUMENTACION DE CAMBIOS REALIZADOS
+================================================================================
+
+Fecha de la sesion: 2026-10-25
+Proyecto: SismoConnect
+Tipo de documento: registro tecnico de implementacion y validacion
+Idioma del documento: espanol
+
+Este archivo resume todo lo implementado, corregido, validado y dejado pendiente
+durante la sesion de desarrollo. No contiene contrasenas, claves privadas ni
+credenciales de produccion.
+
+================================================================================
+1. DATOS GENERALES DEL PROYECTO
+================================================================================
+
+Stack principal:
+- Expo SDK 57.0.31
+- React 19.2.3
+- React Native 0.86.3
+- Expo Router 57.0.29
+- Firebase 12.19.0
+- TypeScript 6.0.3
+- Alias de imports: @/*
+- Plataformas trabajadas: Android y web
+- Arquitectura nativa: Continuous Native Generation (CNG)
+- No existen carpetas android/ ni ios/ versionadas
+- El proyecto no es un repositorio Git en esta copia de trabajo
+
+Firebase:
+- Proyecto: sismoconnectfirebase
+- Functions: Node.js 20, region us-central1, maxInstances 5
+- App Check: enforceAppCheck desactivado
+- Firestore, Authentication, Storage y Functions forman parte de la solucion
+
+Restricciones respetadas:
+- No se inicializo Firebase por segunda vez.
+- No se guardaron secretos en variables EXPO_PUBLIC_*.
+- No se inventaron sismos, noticias, magnitudes ni duraciones.
+- No se anadieron anuncios que bloqueen alertas o flujos de emergencia.
+- No se hicieron migraciones destructivas.
+- No se desplego nada en Firebase ni en EAS.
+- No se instalaron dependencias innecesarias.
+- Se mantuvo la aplicacion y el backend existentes.
+
+Dependencia nueva justificada:
+- fast-xml-parser en el backend de Functions, utilizada para procesar el RSS de
+  ReliefWeb de forma segura y tipada.
+
+================================================================================
+2. RESUMEN EJECUTIVO
+================================================================================
+
+Se completo una evolucion funcional y visual de SismoConnect centrada en:
+
+- Rediseno y mejoras de experiencia en el monitor sismico.
+- Informes oficiales de situacion con GDACS y ReliefWeb.
+- Notificaciones push mediante Firebase Cloud Messaging directo.
+- Bandeja de notificaciones dentro de la aplicacion.
+- Moderacion y panel de administracion.
+- Gestion avanzada de grupos y chat.
+- Preferencias de notificaciones y selector de idioma.
+- Badges de no leidos en la navegacion principal.
+- Pruebas, reglas de Firestore, indices y documentacion.
+
+La aplicacion quedo validada localmente con TypeScript, lint, pruebas unitarias,
+pruebas de reglas, build de Functions, Expo Doctor y exportacion web.
+
+No se realizo despliegue real porque faltan credenciales, archivos de
+configuracion nativos, habilitacion de planes y autorizacion expresa.
+
+================================================================================
+3. CAMBIOS POR AREA
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 Auditoria inicial y correcciones base
+--------------------------------------------------------------------------------
+
+Se revisaron:
+- Tema visual y componentes de interfaz.
+- Fuentes de datos sismicos.
+- Social, amistades, grupos y chat.
+- AdMob y monetizacion.
+- Pruebas automatizadas.
+- Configuracion de Expo, Firebase y variables de entorno.
+
+Correcciones realizadas:
+- Se corrigio el texto con codificacion defectuosa (mojibake) en
+  src/components/quake/quake-row.tsx.
+- El perfil ahora muestra el nombre del pais usando getCountryByCode en lugar de
+  mostrar solo el codigo.
+- Se elimino el import sin uso de pluralize en monitor-hero.tsx.
+- Se elimino la bandera pushEnabled de src/constants/config.ts porque ya no se
+  utilizaba.
+- Se actualizo .env.example para eliminar la bandera obsoleta y documentar que
+  FCM requiere google-services.json y un development build.
+
+--------------------------------------------------------------------------------
+3.2 Diseno, navegacion y monitor sismico
+--------------------------------------------------------------------------------
+
+Paleta y lineamientos:
+- Azul marino, blanco, naranja y teal.
+- Cinco pestanas principales.
+- Rutas stack para Informes, Notificaciones, Administracion y Grupo.
+- Se mantuvo el enfoque mobile-first y compatibilidad Android/web.
+
+Monitor principal:
+- Se integro MonitorHero en src/app/(app)/index.tsx.
+- El hero muestra:
+  - Total de sismos.
+  - Mayor magnitud.
+  - Paises afectados.
+  - Hora de actualizacion.
+- Se sustituyeron los quick links anteriores por un acceso directo a
+  Notificaciones.
+- Se conserva la alerta destacada para sismos de magnitud 5 o superior.
+
+Detalle sismico:
+- Se agrego formatUtc en src/utils/format.ts.
+- El detalle muestra:
+  - Fecha y hora en la zona horaria local del usuario.
+  - La misma fecha y hora en UTC.
+  - Ultima revision del evento.
+  - Duracion cuando la fuente la proporciona.
+  - Enlaces oficiales disponibles.
+- Se agrego una prueba unitaria para formatUtc.
+
+Navegacion:
+- Se registraron las rutas Informes, Notificaciones, Admin y Grupo en el stack
+  principal.
+- Se anadieron badges nativos en las pestanas:
+  - Alertas no leidas.
+  - Chats no leidos.
+- Los badges usan useNotifications y useChats.
+- Se utiliza NativeTabs.Trigger.Badge, disponible en Expo SDK 57.
+
+--------------------------------------------------------------------------------
+3.3 Informes oficiales de situacion
+--------------------------------------------------------------------------------
+
+Backend:
+- Archivo creado: functions/src/sources.ts.
+- Fuentes integradas:
+  - GDACS:
+    https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH
+    Parametros: eventlist=EQ, fromdate, todate, alertlevel=red;orange
+  - ReliefWeb RSS:
+    https://reliefweb.int/disasters/rss.xml
+- La API JSON de ReliefWeb respondio 403, por eso se utilizo su RSS oficial.
+- Se usa fast-xml-parser para interpretar el RSS.
+- Se implemento cache en system/situationCache con vigencia de 10 minutos.
+- Timeout de red: 12 segundos.
+- Si la actualizacion falla, se devuelve el contenido anterior (fallback stale).
+- Nunca se generan datos de relleno ni informes ficticios.
+- Se expuso la callable getSituationReports.
+
+Cliente:
+- src/types/situation.ts: tipos de informes.
+- src/services/situation.ts: llamada a la callable.
+- src/hooks/use-situation-reports.ts: estado, carga, error y datos stale.
+- src/app/reports.tsx: pantalla de informes con filtros, estados de error,
+  aviso de datos desactualizados y enlaces a las fuentes originales.
+
+--------------------------------------------------------------------------------
+3.4 Notificaciones push e inbox
+--------------------------------------------------------------------------------
+
+Decision tecnica:
+- Se usa FCM directo con Firebase Admin y sendEachForMulticast.
+- No se usa Expo Push Service.
+- Esto permite enviar notificaciones nativas a Android con control total desde
+  Firebase Functions.
+
+Backend:
+- Archivo creado: functions/src/notifications.ts.
+- Envio en lotes de 500 tokens.
+- Limpieza automatica de tokens invalidos.
+- Creacion de documentos en la coleccion notifications (inbox).
+- Triggers para:
+  - Mensajes de chat.
+  - Solicitudes y cambios de amistad.
+  - Eventos de grupos.
+- Tarea programada cada 5 minutos para:
+  - Sismos de magnitud 4.5 o superior.
+  - Sismos globales de magnitud 5.5 o superior.
+- Deduplicacion mediante system/earthquakePush/{quakeId}.
+- Respeto de preferencias del usuario antes de enviar.
+- Exportacion de las callables y funciones desde functions/src/index.ts.
+
+Cliente:
+- src/services/push.ts:
+  - getDevicePushTokenAsync.
+  - Canales Android default, earthquakes y social.
+  - Registro y baja de tokens.
+  - Refresco de token con addPushTokenListener.
+  - El listener solo se activa si AsyncStorage contiene
+    sismoconnect:push-enabled.
+- src/services/notifications.ts: lectura y marcado de notificaciones.
+- src/hooks/use-notifications.ts: estado del inbox y contador de no leidas.
+- src/hooks/use-notification-observer.ts: observacion en primer plano,
+  navegacion por tap y arranque en frio.
+- src/app/notifications.tsx: bandeja de notificaciones.
+- Los handlers de foreground y background estan configurados.
+- El permiso de notificaciones se solicita de forma contextual.
+
+Preferencias:
+- users.notificationsEnabled: interruptor maestro.
+- users.notificationPrefs:
+  - earthquakes
+  - social
+  - messages
+  - friends
+  - groups
+- El perfil incluye switches para sismos, mensajes, amistades y grupos.
+- bootstrapProfile y updateProfile devuelven el objeto completo de preferencias,
+  timestamps y demas campos del perfil.
+
+Estado del push:
+- Implementacion de codigo completa.
+- El push nativo no puede probarse todavia porque falta google-services.json.
+- app.json no debe incluir android.googleServicesFile hasta que ese archivo
+  exista.
+- Se requiere vincular EAS y generar un development build.
+- Expo Go no soporta por completo mapas nativos, AdMob ni push.
+
+--------------------------------------------------------------------------------
+3.5 Moderacion y administracion
+--------------------------------------------------------------------------------
+
+Backend:
+- Archivo creado: functions/src/moderation.ts.
+- Los administradores se identifican con el custom claim admin.
+- Callables:
+  - adminListReports
+  - adminModerateReport
+- Acciones disponibles:
+  - review
+  - dismiss
+  - resolve
+  - warn
+  - suspend
+  - unsuspend
+  - delete-message
+- Se registra auditoria en la coleccion moderationActions.
+- Se valida el tipo de grupo al moderar contenido.
+- Se rechaza la interaccion de usuarios suspendidos en flujos sociales.
+
+Cliente:
+- src/services/moderation.ts.
+- src/app/admin/reports.tsx.
+- Filtros y acciones del panel de administracion.
+- Boton "Reactivar cuenta" para revertir suspensiones.
+- src/providers/auth-provider.tsx expone isAdmin a partir del custom claim.
+
+Herramienta operativa:
+- functions/scripts/set-admin.mjs.
+- Script npm set-admin en functions/package.json.
+- Permite asignar el custom claim admin a un usuario mediante su UID.
+
+Seguridad:
+- notifications: lectura permitida solo al propietario.
+- pushDevices: acceso solo desde servidor.
+- system: acceso solo desde servidor.
+- moderationActions: acceso solo desde servidor.
+- Indice compuesto de notifications:
+  uid ASC, createdAt DESC.
+
+--------------------------------------------------------------------------------
+3.6 Grupos y chat
+--------------------------------------------------------------------------------
+
+Backend:
+- Se mantienen y ampliaron las operaciones de grupos:
+  - leaveGroup
+  - updateGroup
+  - regenerateInviteCode
+  - removeGroupMember
+  - deleteGroup
+- updateGroup permite cambiar titulo y descripcion.
+- Se valida MAX_GROUP_DESCRIPTION = 280 caracteres.
+- Se mantiene MAX_GROUP_TITLE en functions/src/config.ts.
+- Al crear o actualizar un grupo se guarda la descripcion.
+- Se notifica a los miembros cuando corresponde.
+
+Cliente:
+- El tipo Chat se amplio con description.
+- chatFromData mapea description.
+- src/services/social.ts incluye las operaciones de grupos y preferencias.
+- src/hooks/use-profile.ts expone la actualizacion de preferencias.
+- src/app/group/[chatId].tsx creado para ajustes del grupo:
+  - Editar nombre.
+  - Editar descripcion.
+  - Compartir invitacion.
+  - Regenerar codigo de invitacion.
+  - Listar miembros.
+  - Expulsar miembros.
+  - Salir del grupo.
+  - Eliminar grupo, solo para el propietario.
+- La expulsion, salida y eliminacion piden confirmacion.
+- Tras salir o eliminar se usa router.dismissAll para volver de forma segura.
+- El menu del chat ahora respeta el limite de 3 botones de Alert.alert en
+  Android:
+  - Cancelar.
+  - Ajustes del grupo.
+  - Compartir invitacion.
+- Las acciones destructivas y de regeneracion se movieron a Ajustes del grupo.
+- El chat permite reportar mensajes con pulsacion larga.
+- El menu de grupo solo aparece cuando el chat es de tipo group.
+
+Limitacion conocida:
+- leaveGroup y deleteGroup no borran la subcoleccion messages.
+- Los mensajes quedan huerfanos e inaccesibles, pero no se eliminan en cascada.
+
+--------------------------------------------------------------------------------
+3.7 Perfil, preferencias e idioma
+--------------------------------------------------------------------------------
+
+- El perfil muestra el nombre del pais.
+- El perfil incluye estado y controles de notificaciones.
+- El perfil incluye selector de idioma.
+- La interfaz permanece en espanol.
+- El ingles aparece como "proximamente"; no se implemento una traduccion parcial
+  que pudiera mostrar textos mezclados.
+- El perfil enlaza al panel de administracion solo cuando el usuario tiene el
+  custom claim admin.
+- Se conserva el acceso a edicion de perfil y cierre de sesion.
+
+================================================================================
+4. ARCHIVOS NUEVOS CREADOS
+================================================================================
+
+Aplicacion:
+- src/types/situation.ts
+- src/services/situation.ts
+- src/hooks/use-situation-reports.ts
+- src/app/reports.tsx
+- src/services/push.ts
+- src/services/notifications.ts
+- src/hooks/use-notifications.ts
+- src/hooks/use-notification-observer.ts
+- src/app/notifications.tsx
+- src/services/moderation.ts
+- src/app/admin/reports.tsx
+- src/app/group/[chatId].tsx
+
+Backend:
+- functions/src/sources.ts
+- functions/src/notifications.ts
+- functions/src/moderation.ts
+- functions/scripts/set-admin.mjs
+
+Documentacion:
+- docs/informes-push-moderacion.md
+- DOCUMENTACION-CAMBIOS.txt (este archivo)
+
+================================================================================
+5. ARCHIVOS MODIFICADOS PRINCIPALES
+================================================================================
+
+Aplicacion:
+- src/app/(app)/index.tsx
+- src/app/(app)/_layout.tsx
+- src/app/(app)/profile.tsx
+- src/app/_layout.tsx
+- src/app/chat/[chatId].tsx
+- src/components/quake/monitor-hero.tsx
+- src/components/quake/quake-detail-modal.tsx
+- src/components/quake/quake-row.tsx
+- src/utils/format.ts
+- src/utils/format.test.ts
+- src/services/social.ts
+- src/hooks/use-profile.ts
+- src/types/social.ts
+- src/providers/auth-provider.tsx
+- src/constants/config.ts
+- .env.example
+
+Backend:
+- functions/src/chats.ts
+- functions/src/profiles.ts
+- functions/src/social.ts
+- functions/src/index.ts
+- functions/src/config.ts
+- functions/package.json
+
+Firebase y pruebas:
+- firestore.rules
+- firestore.indexes.json
+- tests/firestore.rules.test.js
+
+Documentacion:
+- README.md
+- docs/guia-de-clase.md
+
+================================================================================
+6. FIRESTORE, REGLAS E INDICES
+================================================================================
+
+Colecciones y acceso:
+- notifications:
+  - Lectura: solo el usuario propietario.
+  - Escritura: servidor.
+- pushDevices:
+  - Acceso exclusivo del servidor.
+- system:
+  - Acceso exclusivo del servidor.
+  - Incluye situationCache, earthquakePush y otros documentos internos.
+- moderationActions:
+  - Acceso exclusivo del servidor.
+  - Auditoria de acciones administrativas.
+- admobRewards:
+  - Idempotencia de recompensas AdMob cuando se configure el flujo real.
+
+Indice compuesto:
+- notifications: uid ASC, createdAt DESC.
+
+Pruebas de reglas:
+- Se ampliaron los tests para cubrir notifications, pushDevices y system.
+- Total actual: 14 pruebas de reglas.
+
+================================================================================
+7. PRUEBAS Y VALIDACIONES EJECUTADAS
+================================================================================
+
+Comandos y resultados:
+
+1. npx tsc --noEmit
+   Resultado: correcto, sin errores de TypeScript.
+
+2. npm run lint
+   Resultado: correcto, sin errores de lint.
+
+3. npm test -- --runInBand
+   Resultado: 22 pruebas unitarias superadas.
+
+4. npm run test:rules
+   Resultado: 14 pruebas de reglas de Firestore superadas.
+
+5. cd functions; npm run typecheck
+   Resultado: correcto.
+
+6. cd functions; npm run build
+   Resultado: correcto. Se genero functions/lib como artefacto de compilacion.
+
+7. npx expo-doctor
+   Resultado: 21 de 21 comprobaciones correctas.
+
+8. npx expo export --platform web
+   Resultado: exportacion correcta.
+   Rutas estaticas generadas: 27.
+   Artefacto generado: dist/.
+
+Advertencias no bloqueantes:
+- functions/ se ejecuto con Node v24.6.0 mientras el engine declara Node 20.
+  No impidio instalar, compilar ni validar.
+- Durante el export web, expo-notifications indico que el listener de cambios de
+  token push no esta completamente soportado en web. Esto es esperado y no
+  afecta Android.
+- La exportacion web genera advertencias normales de renderizado estatico.
+
+================================================================================
+8. CONFIGURACION PENDIENTE Y BLOQUEOS
+================================================================================
+
+Push nativo:
+- Falta google-services.json.
+- Falta habilitar FCM en Firebase.
+- Falta vincular el proyecto con EAS.
+- Falta crear y probar un development build.
+- No agregar android.googleServicesFile en app.json hasta que el archivo exista.
+- No es posible validar push en Expo Go.
+
+Despliegue:
+- No se desplegaron Functions, reglas, indices ni Storage.
+- Se requiere autorizacion expresa.
+- Se requiere plan Blaze para Functions y Cloud Scheduler.
+- Se requieren credenciales de Firebase con permisos suficientes.
+
+Administracion:
+- Falta el UID o correo del administrador real.
+- Despues de asignar el custom claim admin, el usuario debe refrescar el token o
+  volver a iniciar sesion para que isAdmin se actualice.
+
+AdMob:
+- No se modifico el flujo real en esta sesion.
+- Se mantiene el uso de IDs de prueba.
+- Unidad rewarded de prueba:
+  ca-app-pub-3940256099942544/5224354917
+- Para produccion faltan App ID, unidad real, cuenta AdMob y configuracion SSV.
+- SSV requiere validacion real, ventana de 15 minutos e idempotencia en
+  admobRewards/{transactionId}.
+
+Cloud Scheduler:
+- Requiere plan Blaze.
+- Requiere desplegar la funcion programada y verificar la zona horaria.
+
+Validacion nativa:
+- Requiere dispositivo o emulador.
+- Requiere credenciales EAS y/o Android Studio.
+- No se genero APK ni AAB en esta sesion.
+
+================================================================================
+9. COMANDOS UTILES
+================================================================================
+
+Validacion local:
+
+  npx tsc --noEmit
+  npm run lint
+  npm test -- --runInBand
+  npm run test:rules
+  npx expo-doctor
+  npx expo export --platform web
+
+Backend:
+
+  cd functions
+  npm run typecheck
+  npm run build
+
+Asignar administrador:
+
+  cd functions
+  npm run set-admin -- <UID_DEL_USUARIO>
+
+Desarrollo:
+
+  npx expo start
+
+Instalar dependencias compatibles con Expo:
+
+  npx expo install <paquete>
+
+No usar npm install, yarn add, pnpm add ni bun add para paquetes Expo si existe
+una version compatible gestionada por Expo.
+
+================================================================================
+10. LIMITACIONES Y NOTAS TECNICAS
+================================================================================
+
+- Expo Go no incluye mapas nativos, AdMob ni soporte completo de push.
+- La aplicacion web no soporta completamente el listener de tokens FCM.
+- Los mensajes de grupos eliminados no se borran en cascada.
+- Alert.alert en Android admite como maximo 3 botones; los menus se ajustaron a
+  esa restriccion.
+- Las rutas nuevas requieren casts as Href cuando se usan con typed routes.
+- El proyecto no tiene repositorio Git en esta copia, por lo que no se crearon
+  commits.
+- Los artefactos dist/ y functions/lib/ son resultados de validacion, no codigo
+  fuente nuevo.
+- No se incluyeron secretos en este documento.
+
+Pendientes funcionales de fases posteriores:
+- Foto de grupo.
+- Paginacion y recibos de lectura en chat.
+- Cancelar solicitud de amistad.
+- Rate limits adicionales.
+- Traduccion completa al ingles.
+- Integracion AdMob recompensada y SSV real.
+
+================================================================================
+11. ESTADO FINAL
+================================================================================
+
+Implementado y validado localmente:
+- Monitor sismico mejorado.
+- Detalle sismico con hora local y UTC.
+- Informes oficiales GDACS y ReliefWeb.
+- Push FCM directo, inbox y preferencias.
+- Moderacion y panel de administracion.
+- Gestion avanzada de grupos.
+- Badges de no leidos.
+- Documentacion y pruebas ampliadas.
+
+Pendiente de credenciales o autorizacion:
+- google-services.json y development build.
+- Deploy de Functions, reglas e indices.
+- Custom claim del administrador real.
+- AdMob real y SSV.
+- Cloud Scheduler en Blaze.
+- Build EAS y validacion en dispositivo.
+
+Fin del documento.
