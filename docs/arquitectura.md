@@ -15,12 +15,16 @@ Pantalla (src/app)          → decide QUÉ se muestra y cuándo
    ↓
 Hook (src/hooks)            → estado + efectos (subscriptions, polling)
    ↓
-Servicio (src/services)     → un backend concreto (USGS, Firestore)
+Servicio (src/services)     → un backend concreto (USGS, Firestore, Storage)
    ↓
 Lib/Config (src/lib, src/constants) → acceso a SDKs y credenciales
+   ↓
+Cloud Functions (functions/) → validación server-side, SSV y escrituras sensibles
 ```
 
 Ejemplo real: `alerts.tsx` (pantalla) llama a `useFirestoreAlerts()` (hook), que llama a `subscribeToCollection()` (servicio), que usa `getFirebaseFirestore()` (lib). La pantalla **nunca** importa `firebase/firestore` directamente: solo `use-alerts.ts` y `firestore.ts` lo hacen.
+
+La capa social sigue el mismo patrón: `community.tsx` / `chat/[chatId].tsx` usan `use-friends.ts` / `use-chats.ts`, que llaman a `services/social.ts`. Las operaciones sensibles (perfiles, amistades, chats, cooldown y recompensas) se ejecutan en `functions/`; el cliente no escribe directamente en `users`, `chats` ni `messages`.
 
 Excepción deliberada: `use-alerts.ts` importa `where` de `firebase/firestore` porque necesita un operador de query; es el único hook que toca el SDK.
 
@@ -39,7 +43,7 @@ flowchart TD
     F -- no --> H["Splash / ActivityIndicator<br/>(_layout.tsx:48-56)"]
     H --> G
     G -->|user == null| I["(auth): sign-in / sign-up / forgot"]
-    G -->|user != null| J["(app): Monitor, Mapa, Alertas, Perfil"]
+    G -->|user != null| J["(app): Monitor, Mapa, Alertas, Comunidad, Perfil"]
 ```
 
 Puntos clave de `src/app/_layout.tsx`:
@@ -47,7 +51,7 @@ Puntos clave de `src/app/_layout.tsx`:
 1. **Providers anidados** (líneas 19-27): el orden importa — `AuthProvider` necesita el tema ya montado para pintar el cargador, y ambos necesitan `SafeAreaProvider`.
 2. **Splash retenido** (línea 16 `preventAutoHideAsync`, líneas 44-46 `hideAsync`): la pantalla nativa no se libera hasta que Firebase restaura la sesión persistida, así no aparece un destello de la pantalla de login a usuarios que ya iniciaron sesión.
 3. **Un frame extra** (líneas 38-42): `setTimeout(…, 0)` tras `isLoading=false` para que el navegante esté montado antes de ocultar el splash (evita un frame en blanco en Android).
-4. **Guards declarativos** (líneas 67-72):
+4. **Guards declarativos** (líneas 67-75):
 
    ```tsx
    <Stack.Protected guard={!user}>
@@ -55,6 +59,9 @@ Puntos clave de `src/app/_layout.tsx`:
    </Stack.Protected>
    <Stack.Protected guard={!!user}>
      <Stack.Screen name="(app)" />
+     <Stack.Screen name="chat/[chatId]" />
+     <Stack.Screen name="user/[uid]" />
+     <Stack.Screen name="profile/edit" />
    </Stack.Protected>
    ```
 
@@ -77,8 +84,12 @@ src/app/
 │   ├── index.tsx        → pestaña "Monitor"
 │   ├── map.tsx          → pestaña "Mapa"
 │   ├── alerts.tsx       → pestaña "Alertas"
+│   ├── community.tsx    → pestaña "Comunidad"
 │   ├── profile.tsx      → pestaña "Perfil"
-│   └── firestore-test.tsx  pantalla sin pestaña (se llega con router.push)
+│   └── firestore-test.tsx  pantalla sin pestaña (diagnóstico)
+├── profile/edit.tsx     → /profile/edit
+├── user/[uid].tsx       → /user/[uid]
+├── chat/[chatId].tsx    → /chat/[chatId]
 ├── +not-found.tsx       ruta desconocida
 └── +html.tsx            plantilla HTML de la versión web
 ```
@@ -114,9 +125,10 @@ src/app/
 |---|---|---|
 | **Contexto global** | `providers/`, `hooks/` con `createContext` | `AuthProvider` (sesión), `ThemePreferenceProvider` (tema) |
 | **Estado local de pantalla** | `useState` en `src/app/*.tsx` | filtros, texto del buscador, modal abierto |
-| **Estado compartido vía hook** | `hooks/` | `useEarthquakes` (datos USGS), `useFirestoreAlerts` (Firestore) |
+| **Estado compartido vía hook** | `hooks/` | `useEarthquakes`, `useFirestoreAlerts`, `useProfile`, `useFriends`, `useChats`, `useRewards` |
 | **Persistencia local** | AsyncStorage con `use-storage.ts` | tema (`sismoconnect:theme`), historial (`sismoconnect:viewed`), invitado local (`sismoconnect:guest`) |
-| **Persistencia remota** | Firestore | colección `alertas` (documentos del usuario) |
+| **Persistencia remota** | Firestore + Cloud Functions | `alertas`, perfiles, amistades, chats, mensajes y recompensas |
+| **Archivos** | Firebase Storage | avatar/portada en `users/{uid}/profile/` |
 | **Sesión** | Firebase Auth (persistencia propia en AsyncStorage/browser) | restaurada por `onAuthStateChanged` |
 
 No hay librería de estado global (Redux/Zustand): el proyecto es deliberadamente pequeño y cubre todos los casos con Context + hooks.
@@ -124,11 +136,14 @@ No hay librería de estado global (Redux/Zustand): el proyecto es deliberadament
 ### Ciclo de vida de un dato remoto
 
 ```
-USGS:   mount → fetch → state → (60 s) → fetch → state     [polling en use-earthquakes.ts:76-80]
+USGS:      mount → fetch → state → (60 s) → fetch → state     [polling]
 Firestore: mount → onSnapshot → state ← onSnapshot ← cambio en cualquier cliente  [tiempo real]
+Functions: acción → callable/SSV → validación → escritura → listeners se actualizan
 ```
 
-La diferencia es el requisito de la guía de clase: Firestore usa `onSnapshot` y devuelve `unsubscribe` para limpiar el listener (`use-alerts.ts:57-80`).
+Firestore usa `onSnapshot` y devuelve `unsubscribe` para limpiar cada listener. Los hooks
+sociales mantienen estados explícitos (`loading`, `error`, `busy`) y nunca escriben
+directamente documentos protegidos: llaman a Functions y esperan la confirmación.
 
 ---
 
@@ -142,6 +157,9 @@ El proyecto está pensado para arrancar en un checkout limpio **sin credenciales
 | Sin sesión de Firebase | El grupo `(app)` está tras el guard: no hay acceso. El invitado local sí tiene `user`, así que sí entra (es un usuario "falso" de solo dispositivo). |
 | Red / USGS caído | `ErrorState` con botón "Reintentar" en Monitor, Mapa y Alertas. |
 | Reglas de Firestore negando | `useFirestoreAlerts` captura el error del listener y muestra `ErrorState` en la sección "Mis alertas"; el resto de la pantalla sigue funcionando. |
+| Functions sin desplegar | Perfiles, amistades, chats y recompensas muestran errores controlados; sismos, alertas y modo invitado siguen funcionando. |
+| Storage lleno o sin permisos | La subida de avatar/portada falla con un mensaje; el resto del formulario no se pierde. |
+| AdMob no disponible (web/Expo Go) | Se oculta el desbloqueo con anuncio; el usuario puede seguir esperando el cooldown. |
 
 ---
 
@@ -151,3 +169,6 @@ El proyecto está pensado para arrancar en un checkout limpio **sin credenciales
 - [autenticacion.md](autenticacion.md) — el provider que protege los guards.
 - [datos-sismos.md](datos-sismos.md) — el otro servicio remoto (USGS).
 - [interfaz-y-temas.md](interfaz-y-temas.md) — el sistema de componentes y tokens.
+- [firestore.md](firestore.md) — modelo de datos y reglas.
+- [despliegue.md](despliegue.md) — Firebase, Functions, Storage, AdMob y EAS.
+- [costos-firebase.md](costos-firebase.md) — cuotas y control de gasto.

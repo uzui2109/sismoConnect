@@ -32,9 +32,9 @@ Checklist de cada requisito de la guía y dónde está cumplido en el código (`
 | 5 | **Actualizar documentos con `updateDoc`** | `firestore.ts:42-52` → `updateDocument()`; llamado por `use-alerts.ts:105` (`toggleAlert`: pausar/activar) | ✅ |
 | 6 | **Eliminar documentos con `deleteDoc`** | `firestore.ts:54-63` → `deleteDocument()`; llamado por `use-alerts.ts:114` (`removeAlert`) | ✅ |
 | 7 | **Interfaz de la app que usa Firestore de verdad** | Sección **"Mis alertas"** en `src/app/(app)/alerts.tsx:186-270`: formulario de creación, lista en vivo, botones Pausar/Activar y Eliminar | ✅ |
-| 8 | **Reglas: solo usuarios autenticados** | `firestore.rules` (raíz): `allow read, write: if request.auth != null;` para `alertas` y `test` | ✅ *(ver nota)* |
+| 8 | **Reglas: solo usuarios autenticados** | `firestore.rules` (raíz): `alertas` solo para su dueño; perfiles, amistades, chats y recompensas son de lectura restringida y sus escrituras pasan por Functions | ✅ *(ver nota)* |
 
-> **Nota**: las reglas del archivo ya están escritas, pero hay que **publicarlas** en Firebase Console → Firestore → Reglas. Mientras no se hagan públicas, la consola puede seguir con las reglas anteriores (durante la verificación, una lectura sin sesión fue aceptada).
+> **Nota**: las reglas están escritas y probadas contra el emulador (`npm run test:rules`, 14/14), pero el despliegue real a Firebase sigue pendiente. Publica con `npm run deploy:rules` cuando el proyecto esté autorizado; hasta entonces la consola puede conservar reglas anteriores.
 
 ### Qué NO se tocó (según los límites del encargo)
 
@@ -75,11 +75,13 @@ DOCS smoke-test restantes: 0
 ## 4. Comandos de validación
 
 ```bash
-npm run typecheck   # tsc --noEmit — TypeScript estricto
-npm run lint        # expo lint — ESLint
+npm run typecheck   # tsc --noEmit → TypeScript estricto
+npm run lint        # expo lint → ESLint
+npm test            # 21 tests unitarios
+npm run test:rules  # 14 tests de reglas contra el emulador aislado
 ```
 
-Ambos deben pasar sin errores antes de entregar.
+Todos deben pasar sin errores antes de entregar.
 
 ---
 
@@ -92,7 +94,7 @@ Ambos deben pasar sin errores antes de entregar.
          └─ src/services/firestore.ts   addDoc · getDocs · updateDoc · deleteDoc · onSnapshot
              └─ src/hooks/use-alerts.ts   estado React + cleanup del listener
                  └─ src/app/(app)/alerts.tsx   "Mis alertas" (interfaz real)
-firestore.rules  →  Firebase Console (reglas: request.auth != null)
+firestore.rules  →  npm run deploy:rules  (reglas: dueño + Functions)
 ```
 
 ## 6. Documentación relacionada
@@ -100,3 +102,4 @@ firestore.rules  →  Firebase Console (reglas: request.auth != null)
 - [firestore.md](firestore.md) — detalle completo de la integración.
 - [autenticacion.md](autenticacion.md) — los requisitos de la sección 1.
 - [configuracion.md](configuracion.md) — `.env` y inicialización.
+- [despliegue.md](despliegue.md) — reglas, Functions, Storage y AdMob.

@@ -173,69 +173,97 @@ El resto de la pantalla (avisos USGS ≥ M5, números de emergencia por país) e
 
 ---
 
-## 5. Reglas de seguridad
+## 5. Capa social
 
-Archivo: [`firestore.rules`](../firestore.rules) en la raíz.
+La capa social se apoya en Cloud Functions: el cliente lee en tiempo real, pero las
+escrituras sensibles las hace el servidor con el Admin SDK.
 
-```
-rules_version = '2';
+| Colección | Contenido | Acceso cliente |
+|---|---|---|
+| `users/{uid}` | Perfil privado, contadores, `unlocks`, idioma, preferencias | Solo lectura del dueño |
+| `users/{uid}/chatIndex/{chatId}` | Resumen de cada chat para la bandeja | Solo lectura del dueño |
+| `publicProfiles/{uid}` | Nombre, usuario, bio, país, avatar, portada, visibilidad | Lectura autenticada |
+| `usernames/{username}` | Reserva atómica de nombres de usuario | Lectura autenticada |
+| `friendRequests/{requestId}` | Solicitud `pending` entre dos usuarios | Solo emisor/receptor |
+| `friendships/{pairId}` | Amistad bidireccional (`memberIds`) | Solo miembros |
+| `blocks/{blockerUid_blockedUid}` | Bloqueo unidireccional | Solo quien bloquea |
+| `chats/{chatId}` | Chat directo o grupo (`type`, `memberIds`, `inviteCode`) | Solo miembros |
+| `chats/{chatId}/members/{uid}` | Marcador de pertenencia usado por reglas | Solo miembros |
+| `chats/{chatId}/messages/{messageId}` | Mensajes, emergencia, autor, fecha | Solo miembros |
+| `reports/{reportId}` | Reportes de abuso | Cerrado al cliente |
+| `config/chat` | Cooldown y límites globales | Lectura autenticada |
+| `admobRewards/{transactionId}` | Recibo idempotente de SSV | Solo el `uid` del recibo |
 
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Alertas personalizadas del usuario (la app usa esta colección).
-    match /alertas/{alertId} {
-      allow read, write: if request.auth != null;
-    }
+IDs deterministas:
 
-    // Colección que usa la pantalla de prueba de Firestore.
-    match /test/{documentId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
+- Amistad: `pairId(uid, other)`.
+- Bloqueo: `${blockerUid}_${blockedUid}`.
+- Solicitud: `request_${pairId}`.
+- Chat directo: `direct_${pairId}`.
+- Grupo: código de invitación aleatorio de 10 caracteres.
 
-- `request.auth != null` = **solo usuarios autenticados** (correo, Google o anónimo). Un invitado local o un usuario sin sesión recibe `permission-denied`.
-- Si el `match` no cubre una colección, el denegado es el **default**: colecciones no listadas quedan cerradas.
-- No se permite `if true` en ninguna parte.
+Las funciones que escriben estas colecciones están en [`functions/src`](../functions/src):
+`bootstrapProfile`, `claimUsername`, `updateProfile`, `sendFriendRequest`,
+`respondFriendRequest`, `removeFriend`, `blockUser`, `unblockUser`, `reportUser`,
+`createDirectChat`, `createGroup`, `joinGroupByCode`, `markChatRead`, `sendMessage`,
+`admobSsv`, `emergencyState` y `rewardState`.
+
+---
+
+## 6. Reglas de seguridad
+
+Archivo: [`firestore.rules`](../firestore.rules) en la raíz. Resumen:
+
+| Colección | Lectura | Escritura |
+|---|---|---|
+| `alertas` | Dueño (`userId == uid`) | Dueño; `create` exige `userId == uid` |
+| `users`, `chatIndex` | Dueño | Denegada (Functions) |
+| `publicProfiles`, `usernames` | Autenticado | Denegada (Functions) |
+| `friendRequests` | Emisor o receptor | Denegada (Functions) |
+| `friendships` | Miembro (`uid in memberIds`) | Denegada (Functions) |
+| `blocks` | Quien bloquea | Denegada (Functions) |
+| `chats`, `members`, `messages` | Miembro del chat | Denegada (Functions) |
+| `reports` | Denegada | Denegada |
+| `config` | Autenticado | Denegada |
+| `admobRewards` | Dueño del recibo | Denegada (SSV) |
+| `test` | Denegada | Denegada |
+
+- La pertenencia a un chat se comprueba con `exists(/chats/{chatId}/members/{uid})`.
+- El default es denegar: cualquier colección no listada queda cerrada.
+- No se permite `if true` en Firestore. Storage sí permite lectura pública de avatares,
+  pero solo el dueño escribe los dos slots conocidos con límite de 2 MB.
 
 ### Cómo publicarlas
 
-1. Firebase Console → **Firestore Database** → pestaña **Reglas**.
-2. Reemplazar el contenido por el de `firestore.rules`.
-3. **Publicar**.
+```bash
+npm run deploy:rules
+```
 
-> **Estado actual (2026-10-06)**: las reglas desplegadas en la consola siguen abiertas — una lectura sin sesión fue aceptada durante la verificación. Publica este archivo para exigir autenticación.
+También puedes publicarlas desde Firebase Console → **Firestore Database → Reglas**.
+Los tests locales están en `tests/firestore.rules.test.js` y se ejecutan con
+`npm run test:rules` contra el emulador aislado `demo-sismoconnect`.
 
 ---
 
-## 6. Verificación realizada
+## 7. Verificación
 
-Smoke test ejecutado en vivo contra el proyecto real (script temporal, ya eliminado):
-
-```
-LECTURA sin auth: permitida (reglas aún abiertas)
-ADD_OK 4sipoR9hQnt3Ehomqwnv        ← addDoc
-ONSNAPSHOT_OK documento visible en tiempo real
-UPDATE_OK onSnapshot reflejó updateDoc
-DELETE_OK onSnapshot reflejó deleteDoc
-DOCS smoke-test restantes: 0
-SMOKE_TEST_EXITO
-```
-
-Verificación manual en la app (ver también [guia-de-clase.md](guia-de-clase.md)):
-
-1. Iniciar sesión con correo → Alertas → crear una alerta → aparece al instante.
-2. Abrir la app en otro dispositivo/navegador con la misma cuenta → la alerta aparece sola (onSnapshot).
-3. Pausar/activar y eliminar desde cualquiera de los dos → el otro se actualiza solo.
-4. Cerrar sesión → la sección cambia a "Inicia sesión para sincronizar".
-5. Entrar como invitado local (sin `.env`) → misma pantalla, sin llamadas a Firestore.
-6. Probar sin sesión en la consola → `permission-denied` una vez publicadas las reglas.
+- Tests de reglas: 12 casos (`tests/firestore.rules.test.js`) cubren acceso sin sesión,
+  perfiles privados, alertas, amistades, reportes, chats, mensajes, recompensas y config.
+- `npm run typecheck`, `npm run lint`, `npm test` y `npm run doctor` deben pasar.
+- Verificación manual en la app (ver también [guia-de-clase.md](guia-de-clase.md)):
+  1. Iniciar sesión → Alertas → crear una alerta → aparece al instante.
+  2. Abrir la app en otro dispositivo con la misma cuenta → la alerta aparece sola.
+  3. Pausar/activar/eliminar desde cualquiera de los dos → el otro se actualiza.
+  4. Cerrar sesión → la sección cambia a "Inicia sesión para sincronizar".
+  5. Invitado local sin `.env` → misma pantalla, sin llamadas a Firestore.
+  6. Sin Functions desplegadas, Comunidad muestra error controlado; no se rompe el resto.
 
 ---
 
-## 7. Documentación relacionada
+## 8. Documentación relacionada
 
 - [autenticacion.md](autenticacion.md) — qué sesiones cumplen `request.auth != null`.
 - [configuracion.md](configuracion.md) — de dónde sale `getFirebaseFirestore()`.
+- [despliegue.md](despliegue.md) — despliegue de reglas, Functions, Storage y AdMob.
+- [costos-firebase.md](costos-firebase.md) — cuotas y control de gasto.
 - [guia-de-clase.md](guia-de-clase.md) — requisitos cumplidos con `archivo:línea`.

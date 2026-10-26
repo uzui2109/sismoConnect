@@ -26,7 +26,7 @@ export const firebaseConfig = {
 | `EXPO_PUBLIC_FIREBASE_API_KEY` | Configuración del proyecto → Tus apps → SDK | Identifica el proyecto (no es un secreto: viaja en el bundle) |
 | `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | idem | Dominio para flujos web de auth |
 | `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | idem | ID del proyecto (`<proyecto>.firebaseio.com`) |
-| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | idem | Bucket (no se usa Storage hoy) |
+| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | idem | Bucket de Storage para avatares y portadas |
 | `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | idem | Sender de FCM (hoy solo se propaga) |
 | `EXPO_PUBLIC_FIREBASE_APP_ID` | idem | ID de la app registrada |
 | `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | Google Cloud Console → credenciales OAuth | Opcional: habilita "Continuar con Google" |
@@ -86,7 +86,7 @@ Por qué está así:
 - **`firebaseAuth` como `Proxy`**: da compatibilidad con código que espera un objeto auth "eager", resolviéndolo bajo demanda.
 - **Firestore reutiliza la app**: `getFirebaseFirestore()` (`firebase.native.ts:37-43`) hace `getFirestore(instance ? getApp() : initializeApp(firebaseConfig))`, así auth y Firestore apuntan al mismo `app` sin duplicar inicializaciones.
 
-El punto único de acceso para servicios es `getFirebaseFirestore()`; `services/firestore.ts` es el único archivo que lo consume.
+Los servicios usan `getFirebaseFirestore()` (`services/firestore.ts`, `services/social.ts`) y `getFirebaseStorage()` (`services/profile-images.ts`). Siguen compartiendo la misma app de Firebase, sin inicializaciones duplicadas.
 
 ---
 
@@ -101,7 +101,7 @@ El punto único de acceso para servicios es `getFirebaseFirestore()`; `services/
 | `android.package` | `com.sismoconnect.app` | Package id de Android |
 | `web.bundler` / `output` | `metro` / `static` | SSG estático para web |
 | `experiments.typedRoutes` | `true` | Los `href` de Expo Router se validan en TS |
-| `plugins` | expo-router, expo-image, expo-web-browser, expo-splash-screen, expo-font | Módulos nativos que necesitan config (splash con logo y fondo `#0B1120`) |
+| `plugins` | expo-router, expo-image, expo-web-browser, expo-splash-screen, expo-font, expo-build-properties, expo-image-picker, expo-notifications, react-native-google-mobile-ads | Módulos nativos que necesitan config (splash `#0B1120`, permisos de fotos, AdMob de prueba) |
 
 > No existen carpetas `ios/` ni `android/` (Continuous Native Generation): la config nativa vive en `app.json` y los plugins.
 
@@ -111,13 +111,16 @@ El punto único de acceso para servicios es `getFirebaseFirestore()`; `services/
 
 - **`tsconfig.json`**: `strict: true`, hereda `expo/tsconfig.base`, alias `@/* → ./src/*` y `@/assets/* → ./assets/*`, incluye `.expo/types` (rutas tipadas) y `expo-env.d.ts`.
 - **`eslint.config.js`**: flat config con `eslint-config-expo/flat` e ignora `dist/`.
-- **Scripts** (`package.json`): `start`, `android`, `web`, `typecheck` (`tsc --noEmit`), `lint` (`expo lint`), `doctor` (`expo-doctor`).
+- **Scripts** (`package.json`): `start`, `android`, `web`, `typecheck` (`tsc --noEmit`), `lint` (`expo lint`), `test`, `test:rules`, `doctor`, `emulators` y `deploy`.
 
 Validación habitual antes de dar por terminada una tarea:
 
 ```bash
-npm run typecheck && npm run lint
+npm run typecheck && npm run lint && npm test
 ```
+
+Los tests de reglas se ejecutan con `npm run test:rules`; arrancan y detienen el emulador
+aislado automáticamente. El runbook completo está en [despliegue.md](despliegue.md).
 
 ---
 
@@ -130,6 +133,7 @@ npm run typecheck && npm run lint
 | Firestore (SDK JS puro) | ✅ | ✅ |
 | Mapa (`react-native-maps`) | ✅ (incluido en Expo Go) | ✅ |
 | **Google Sign-In** (OAuth por navegador) | ❌ | ✅ |
+| Anuncio recompensado (AdMob + SSV) | ❌ | ✅ |
 | `global.css` / fuentes | ✅ | ✅ |
 
 Firestore no requiere módulos nativos propios: usa el SDK JS (`firebase/firestore`) sobre WebSocket, así que funciona en Expo Go sin development build.
@@ -155,3 +159,4 @@ Se conservan **sin usar** por decisión del proyecto (no eliminar, no expandir):
 - [autenticacion.md](autenticacion.md) — qué consume esta configuración.
 - [firestore.md](firestore.md) — reglas de seguridad de Firestore.
 - [arquitectura.md](arquitectura.md) — cómo encajan estas piezas en el arranque.
+- [despliegue.md](despliegue.md) — Firebase, Functions, Storage, AdMob y EAS.
