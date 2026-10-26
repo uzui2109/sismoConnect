@@ -5,9 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaxContentWidth, quakeColor, QuakeScale, Radius, Spacing } from '@/constants/theme';
 import { aggregateByRegion, USGS_ATTRIBUTION } from '@/services/usgs';
 import { useEarthquakes } from '@/hooks/use-earthquakes';
+import { useStoredValue } from '@/hooks/use-storage';
 import { useIsDark, useTheme } from '@/hooks/use-theme';
 import type { FeedWindow, Quake } from '@/types/earthquake';
 import { formatMagnitude, pluralize, shortenPlace, timeAgo } from '@/utils/format';
+import { CountryFilter } from '@/components/quake/country-filter';
 import { QuakeDetailModal } from '@/components/quake/quake-detail-modal';
 import { QuakeMap } from '@/components/map/quake-map';
 import { Badge } from '@/components/ui/badge';
@@ -28,18 +30,32 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const [window, setWindow] = useState<FeedWindow>('all_day');
   const [selected, setSelected] = useState<Quake | null>(null);
+  const { value: selectedCountries, setValue: setSelectedCountries } = useStoredValue<string[]>(
+    'sismoconnect:country-filter',
+    []
+  );
 
   const { data, loading, error, lastUpdated, refetch } = useEarthquakes(window);
 
-  const regions = useMemo(() => aggregateByRegion(data).slice(0, 8), [data]);
+  const filtered = useMemo(
+    () =>
+      selectedCountries.length === 0
+        ? data
+        : data.filter(
+            (quake) =>
+              quake.countryCode !== null && selectedCountries.includes(quake.countryCode)
+          ),
+    [data, selectedCountries]
+  );
+  const regions = useMemo(() => aggregateByRegion(filtered).slice(0, 8), [filtered]);
   const strongest = useMemo(
     () =>
-      data.reduce<Quake | null>(
+      filtered.reduce<Quake | null>(
         (best, quake) =>
           !best || (quake.magnitude ?? -1) > (best.magnitude ?? -1) ? quake : best,
         null
       ),
-    [data]
+    [filtered]
   );
 
   return (
@@ -73,6 +89,8 @@ export default function MapScreen() {
         ))}
       </View>
 
+      <CountryFilter selected={selectedCountries} onChange={setSelectedCountries} />
+
       {error ? (
         <ErrorState message={error} onRetry={() => void refetch()} />
       ) : (
@@ -81,7 +99,7 @@ export default function MapScreen() {
             {loading ? (
               <Skeleton height={280} radius={Radius.lg} />
             ) : (
-              <QuakeMap quakes={data} selectedId={selected?.id} onSelect={setSelected} />
+              <QuakeMap quakes={filtered} selectedId={selected?.id} onSelect={setSelected} />
             )}
           </View>
 

@@ -35,6 +35,7 @@ export type AppUser = {
   displayName: string | null;
   isAnonymous: boolean;
   emailVerified: boolean;
+  isAdmin: boolean;
 };
 
 type AuthContextValue = {
@@ -64,6 +65,7 @@ const LOCAL_GUEST: AppUser = {
   displayName: 'Invitado',
   isAnonymous: true,
   emailVerified: false,
+  isAdmin: false,
 };
 
 function requireConfig(): void {
@@ -83,23 +85,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isFirebaseConfigured) {
+      let active = true;
       // Firebase restores the persisted session asynchronously; until it does,
       // the guard would redirect an already-signed-in user to the login screen.
-      return onAuthStateChanged(getFirebaseAuth(), (next) => {
+      const unsubscribe = onAuthStateChanged(getFirebaseAuth(), async (next) => {
         firebaseUser.current = next;
-        setUser(
-          next
-            ? {
-                uid: next.uid,
-                email: next.email,
-                displayName: next.displayName,
-                isAnonymous: next.isAnonymous,
-                emailVerified: next.emailVerified,
-              }
-            : null
-        );
+        if (!next) {
+          if (active) {
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        let isAdmin = false;
+        try {
+          const token = await next.getIdTokenResult();
+          isAdmin = token.claims.admin === true;
+        } catch {
+          isAdmin = false;
+        }
+        if (!active) return;
+        setUser({
+          uid: next.uid,
+          email: next.email,
+          displayName: next.displayName,
+          isAnonymous: next.isAnonymous,
+          emailVerified: next.emailVerified,
+          isAdmin,
+        });
         setIsLoading(false);
       });
+      return () => {
+        active = false;
+        unsubscribe();
+      };
     }
 
     // Without Firebase the app still runs: a device-local guest session is

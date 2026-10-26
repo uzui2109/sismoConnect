@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 const TABS = [
   { name: 'monitor', href: '/', label: 'Monitor' },
   { name: 'map', href: '/map', label: 'Mapa' },
+  { name: 'community', href: '/community', label: 'Comunidad' },
   { name: 'alerts', href: '/alerts', label: 'Alertas' },
   { name: 'profile', href: '/profile', label: 'Perfil' },
 ] as const;

@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, SectionList, StyleSheet, TextInput, View } from 'react-native';
+import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, quakeColor, QuakeScale, Radius, Spacing } from '@/constants/theme';
 import { useEarthquakes } from '@/hooks/use-earthquakes';
-import { useViewedHistory } from '@/hooks/use-storage';
+import { useStoredValue, useViewedHistory } from '@/hooks/use-storage';
 import { useIsDark, useTheme } from '@/hooks/use-theme';
 import { haptics } from '@/lib/haptics';
 import { matchesMagnitude, USGS_ATTRIBUTION } from '@/services/usgs';
 import type { MagnitudeFilter, Quake } from '@/types/earthquake';
 import { pluralize, timeAgo } from '@/utils/format';
+import { CountryFilter } from '@/components/quake/country-filter';
+import { MonitorHero } from '@/components/quake/monitor-hero';
 import { QuakeDetailModal } from '@/components/quake/quake-detail-modal';
 import { QuakeRow } from '@/components/quake/quake-row';
 import { Chip } from '@/components/ui/chip';
@@ -32,6 +35,10 @@ export default function MonitorScreen() {
   const insets = useSafeAreaInsets();
   const { data, loading, refreshing, error, lastUpdated, refetch } = useEarthquakes('all_day');
   const { viewed, remember } = useViewedHistory();
+  const { value: selectedCountries, setValue: setSelectedCountries } = useStoredValue<string[]>(
+    'sismoconnect:country-filter',
+    []
+  );
 
   const [filter, setFilter] = useState<MagnitudeFilter>('all');
   const [search, setSearch] = useState('');
@@ -41,9 +48,19 @@ export default function MonitorScreen() {
     const term = search.trim().toLowerCase();
     return data.filter((quake) => {
       if (!matchesMagnitude(quake, filter)) return false;
-      return !term || quake.place.toLowerCase().includes(term);
+      if (
+        selectedCountries.length > 0 &&
+        (!quake.countryCode || !selectedCountries.includes(quake.countryCode))
+      ) {
+        return false;
+      }
+      return (
+        !term ||
+        quake.place.toLowerCase().includes(term) ||
+        (quake.countryName?.toLowerCase().includes(term) ?? false)
+      );
     });
-  }, [data, filter, search]);
+  }, [data, filter, search, selectedCountries]);
 
   const strongest = useMemo(
     () =>
@@ -55,6 +72,11 @@ export default function MonitorScreen() {
     [data]
   );
 
+  const countryCount = useMemo(
+    () => new Set(data.map((quake) => quake.countryCode).filter(Boolean)).size,
+    [data]
+  );
+
   function open(quake: Quake) {
     setSelected(quake);
     remember(quake.id);
@@ -63,14 +85,13 @@ export default function MonitorScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
-        <View style={styles.headerText}>
-          <ThemedText type="title" style={styles.title}>
-            Sismos recientes
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {lastUpdated ? `Actualizado ${timeAgo(lastUpdated)}` : 'Cargando actividad…'}
-          </ThemedText>
-        </View>
+        <MonitorHero
+          total={data.length}
+          strongestMagnitude={strongest?.magnitude ?? null}
+          countries={countryCount}
+          updatedLabel={lastUpdated ? `Actualizado ${timeAgo(lastUpdated)}` : 'Cargando actividad…'}
+          onOpenReports={() => router.push('/reports' as Href)}
+        />
 
         {strongest?.magnitude != null && strongest.magnitude >= 5 && (
           <View style={[styles.alert, { backgroundColor: theme.primaryContainer }]}>
@@ -79,6 +100,26 @@ export default function MonitorScreen() {
             </ThemedText>
           </View>
         )}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Abrir notificaciones"
+          onPress={() => router.push('/notifications' as Href)}
+          style={({ pressed }) => [
+            styles.quickLink,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.outlineVariant,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}>
+          <ThemedText type="smallBold" style={{ color: theme.primary }}>
+            Notificaciones
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Historial de avisos y actividad
+          </ThemedText>
+        </Pressable>
       </View>
 
       <View style={styles.controls}>
@@ -107,6 +148,8 @@ export default function MonitorScreen() {
             />
           ))}
         </View>
+
+        <CountryFilter selected={selectedCountries} onChange={setSelectedCountries} />
       </View>
 
       {loading ? (
@@ -154,7 +197,9 @@ export default function MonitorScreen() {
               description={
                 search
                   ? `Ningún sismo coincide con «${search}».`
-                  : 'No hay sismos que cumplan este filtro en las últimas 24 horas.'
+                  : selectedCountries.length > 0
+                    ? 'No hay sismos en los países seleccionados durante las últimas 24 horas.'
+                    : 'No hay sismos que cumplan este filtro en las últimas 24 horas.'
               }
             />
           }
@@ -208,6 +253,20 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Radius.md,
     marginTop: Spacing.two,
+  },
+  quickLinks: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    marginTop: Spacing.two,
+  },
+  quickLink: {
+    flex: 1,
+    minHeight: 58,
+    justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   controls: {
     gap: Spacing.three,

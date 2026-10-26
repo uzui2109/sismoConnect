@@ -1,6 +1,8 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { Colors } from '@/constants/theme';
+import { useChats } from '@/hooks/use-chats';
+import { useNotifications } from '@/hooks/use-notifications';
 import { useThemePreference } from '@/hooks/use-theme-preference';
 
 /**
@@ -9,6 +11,9 @@ import { useThemePreference } from '@/hooks/use-theme-preference';
  */
 export default function AppTabsLayout() {
   const { resolved } = useThemePreference();
+  const { unread } = useNotifications();
+  const { chats } = useChats();
+  const unreadChats = chats.reduce((total, chat) => total + chat.unreadCount, 0);
   const isDark = resolved === 'dark';
   const colors = isDark ? Colors.dark : Colors.light;
 
@@ -27,9 +32,22 @@ export default function AppTabsLayout() {
         <NativeTabs.Trigger.Icon sf="map" md="public" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="community">
+        <NativeTabs.Trigger.Label>Comunidad</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="person.2" md="groups" />
+        {unreadChats > 0 ? (
+          <NativeTabs.Trigger.Badge>
+            {unreadChats > 9 ? '9+' : String(unreadChats)}
+          </NativeTabs.Trigger.Badge>
+        ) : null}
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="alerts">
         <NativeTabs.Trigger.Label>Alertas</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="bell" md="notifications" />
+        {unread > 0 ? (
+          <NativeTabs.Trigger.Badge>{unread > 9 ? '9+' : String(unread)}</NativeTabs.Trigger.Badge>
+        ) : null}
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">

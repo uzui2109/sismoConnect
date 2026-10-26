@@ -10,69 +10,68 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    /** Primary text / icons */
-    text: '#1A1C1E',
-    textSecondary: '#5A5F67',
-    /** Screen background */
-    background: '#FDFBFF',
-    /** Cards, sheets, bars */
-    surface: '#F4F1F6',
-    surfaceContainer: '#ECE8F0',
-    /** Inputs, chips */
-    backgroundElement: '#E9E5EC',
-    backgroundSelected: '#DCD7E1',
-    /** MD3 outlines */
-    outline: '#767680',
-    outlineVariant: '#CAC5CF',
-    /** Brand accent */
-    primary: '#B3261E',
+    text: '#0B1B33',
+    textSecondary: '#52627A',
+    background: '#F7F9FC',
+    surface: '#FFFFFF',
+    surfaceContainer: '#EEF3FA',
+    backgroundElement: '#E7EEF8',
+    backgroundSelected: '#D8E5F5',
+    outline: '#7A8AA3',
+    outlineVariant: '#CDD8E8',
+    primary: '#0B4F8A',
     onPrimary: '#FFFFFF',
-    primaryContainer: '#F9DEDC',
-    onPrimaryContainer: '#410E0B',
-    /** Semantic */
+    primaryContainer: '#D6E8FA',
+    onPrimaryContainer: '#062B4D',
+    secondary: '#B45309',
+    onSecondary: '#FFFFFF',
+    secondaryContainer: '#FFF1D6',
+    onSecondaryContainer: '#4A2C00',
     error: '#B3261E',
     onError: '#FFFFFF',
-    success: '#2E6B3E',
-    warning: '#8A5A00',
-    info: '#1B5E8C',
-    /** Scrim behind modals */
-    scrim: 'rgba(0,0,0,0.45)',
+    success: '#256B3A',
+    warning: '#9A5B00',
+    info: '#0B6E99',
+    scrim: 'rgba(3,12,25,0.55)',
   },
   dark: {
-    text: '#E4E2E6',
-    textSecondary: '#C4C6D0',
-    background: '#0B1120',
-    surface: '#141A26',
-    surfaceContainer: '#1C2432',
-    backgroundElement: '#232C3B',
-    backgroundSelected: '#2E3848',
-    outline: '#8E9099',
-    outlineVariant: '#44474F',
-    primary: '#F2B8B5',
-    onPrimary: '#601410',
-    primaryContainer: '#8C1D18',
-    onPrimaryContainer: '#F9DEDC',
-    error: '#F2B8B5',
-    onError: '#601410',
-    success: '#7ED694',
-    warning: '#F5C15E',
-    info: '#8FCBEE',
-    scrim: 'rgba(0,0,0,0.6)',
+    text: '#E8EEF8',
+    textSecondary: '#A9B8CE',
+    background: '#07101F',
+    surface: '#0F1B2E',
+    surfaceContainer: '#16243A',
+    backgroundElement: '#1D2D45',
+    backgroundSelected: '#263B58',
+    outline: '#8496AE',
+    outlineVariant: '#3A4B63',
+    primary: '#8FC4F5',
+    onPrimary: '#00315C',
+    primaryContainer: '#0A3E6B',
+    onPrimaryContainer: '#D3E7FF',
+    secondary: '#F7C873',
+    onSecondary: '#3D2A00',
+    secondaryContainer: '#5B3D00',
+    onSecondaryContainer: '#FFE2A8',
+    error: '#FFB4AB',
+    onError: '#690005',
+    success: '#86D99B',
+    warning: '#F7C873',
+    info: '#8ED0F0',
+    scrim: 'rgba(0,0,0,0.68)',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /**
- * Magnitude → colour. Chosen for perceptual separation across the full
- * range: subtle (green/blue) for routine tremors, amber/orange for felt
- * events, red for damaging ones.
+ * Magnitude → colour. Blues for routine tremors, amber/orange for felt
+ * events, red only for damaging ones.
  */
 export const QuakeScale = {
-  low: { color: '#2E7D8F', label: 'Menor' },
-  light: { color: '#2E6B3E', label: 'Ligero' },
+  low: { color: '#2E6F9E', label: 'Menor' },
+  light: { color: '#1F5C8C', label: 'Ligero' },
   moderate: { color: '#B8860B', label: 'Moderado' },
-  strong: { color: '#D2601A', label: 'Fuerte' },
+  strong: { color: '#C2600F', label: 'Fuerte' },
   major: { color: '#B3261E', label: 'Mayor' },
 } as const;
 

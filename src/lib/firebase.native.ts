@@ -1,9 +1,16 @@
 import { getApp, initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { firebaseConfig, isFirebaseConfigured } from '@/constants/config';
+import {
+  firebaseConfig,
+  functionsRegion,
+  isFirebaseConfigured,
+  isFirebaseStorageConfigured,
+} from '@/constants/config';
 
 /**
  * Native persistence: AsyncStorage keeps the Firebase session across restarts.
@@ -40,4 +47,20 @@ export function getFirebaseFirestore() {
   }
 
   return getFirestore(instance ? getApp() : initializeApp(firebaseConfig));
+}
+
+export function getFirebaseStorage() {
+  if (!isFirebaseStorageConfigured) {
+    throw new Error('Firebase Storage no está configurado. Añade EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET.');
+  }
+
+  return getStorage(instance ? getApp() : initializeApp(firebaseConfig));
+}
+
+export function getFirebaseFunctions() {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase no está configurado. Revisa tu archivo .env.');
+  }
+
+  return getFunctions(instance ? getApp() : initializeApp(firebaseConfig), functionsRegion);
 }

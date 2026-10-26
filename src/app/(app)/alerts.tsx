@@ -19,39 +19,33 @@ import { ThemedText } from '@/components/themed-text';
 const EMERGENCY: { country: string; numbers: { label: string; number: string }[] }[] = [
   {
     country: 'México',
-    numbers: [
-      { label: 'Emergencias', number: '911' },
-      { label: 'Protección Civil', number: '911' },
-      { label: 'Cruz Roja', number: '0655' },
-    ],
+    numbers: [{ label: 'Emergencias', number: '911' }],
   },
   {
     country: 'Colombia',
-    numbers: [
-      { label: 'Emergencias', number: '123' },
-      { label: 'Cruz Roja', number: '132' },
-    ],
+    numbers: [{ label: 'Emergencias', number: '123' }],
   },
   {
     country: 'Chile',
     numbers: [
-      { label: 'Emergencias', number: '133' },
+      { label: 'SAMU', number: '131' },
       { label: 'Bomberos', number: '132' },
+      { label: 'Carabineros', number: '133' },
+      { label: 'PDI', number: '134' },
     ],
   },
   {
     country: 'Perú',
     numbers: [
-      { label: 'Emergencias', number: '105' },
-      { label: 'Defensa Civil', number: '116' },
+      { label: 'Central de emergencias', number: '105' },
+      { label: 'SAMU', number: '106' },
+      { label: 'Defensa Civil', number: '115' },
+      { label: 'Bomberos', number: '116' },
     ],
   },
   {
     country: 'Ecuador',
-    numbers: [
-      { label: 'Emergencias', number: '911' },
-      { label: 'SRI', number: '911' },
-    ],
+    numbers: [{ label: 'Emergencias', number: '911' }],
   },
 ];
 
@@ -275,7 +269,8 @@ export default function AlertsScreen() {
       <View style={styles.section}>
         <ThemedText type="subtitle">Números de emergencia</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Marcarlos mantiene la llamada lista para enviar.
+          Números oficiales. Toca uno para preparar la llamada; confirma siempre con tu servicio
+          local.
         </ThemedText>
 
         {EMERGENCY.map((country) => (
@@ -290,7 +285,9 @@ export default function AlertsScreen() {
                   <ThemedText type="small" themeColor="textSecondary">
                     {entry.label}
                   </ThemedText>
-                  <ThemedText style={styles.number}>{entry.number}</ThemedText>
+                  <ThemedText style={[styles.number, { color: theme.error }]}>
+                    {entry.number}
+                  </ThemedText>
                 </Card>
               ))}
             </View>
@@ -302,7 +299,7 @@ export default function AlertsScreen() {
         <ThemedText type="smallBold">Antes de un sismo</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           Identifica las salidas de emergencia de tu zona, asegura muebles pesados y mantén a la
-          mano este número. Durante el evento, protege tu cabeza y refrainte de usar ascensores.
+          mano estos números. Durante el evento, protege tu cabeza y evita usar ascensores.
         </ThemedText>
       </Card>
     </ScrollView>
@@ -367,7 +364,6 @@ const styles = StyleSheet.create({
   number: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#B3261E',
     paddingVertical: Spacing.one,
   },
   notice: {

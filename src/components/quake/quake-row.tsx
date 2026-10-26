@@ -40,7 +40,7 @@ export function QuakeRow({ quake, onPress, dimmed, style }: Props) {
       {/* Colour-coded magnitude tile doubles as the severity indicator. */}
       <View style={[styles.magnitude, { backgroundColor: color }]}>
         <ThemedText style={styles.magnitudeValue} onDarkBackground>
-          {quake.magnitude === null ? 'â€”' : quake.magnitude.toFixed(1)}
+          {quake.magnitude === null ? '—' : quake.magnitude.toFixed(1)}
         </ThemedText>
         <ThemedText style={styles.magnitudeScale} onDarkBackground>
           {QuakeScale[quakeLevel(quake.magnitude)].label}
@@ -53,7 +53,7 @@ export function QuakeRow({ quake, onPress, dimmed, style }: Props) {
         </ThemedText>
 
         <ThemedText type="small" themeColor="textSecondary">
-          {timeAgo(quake.time)} Â· {quake.depthKm.toFixed(1)} km de profundidad
+          {timeAgo(quake.time)} · {quake.depthKm.toFixed(1)} km de profundidad
         </ThemedText>
 
         {(quake.tsunami === 1 || quake.felt !== null) && (

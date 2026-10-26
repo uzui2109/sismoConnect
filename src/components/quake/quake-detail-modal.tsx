@@ -10,9 +10,12 @@ import {
   formatCoordinates,
   formatDateTime,
   formatDepth,
+  formatDuration,
   formatFelt,
   formatMagnitude,
+  formatUtc,
   shortenPlace,
+  timeAgo,
 } from '@/utils/format';
 
 type Props = {
@@ -78,12 +81,35 @@ export function QuakeDetailModal({ quake, onClose, onOpenUsgs }: Props) {
               {quake.status !== 'reviewed' && <Badge label="Revisión automática" color={theme.warning} />}
             </View>
 
-            <DetailRow label="Fecha y hora" value={formatDateTime(quake.time)} />
+            <DetailRow
+              label="Fecha y hora (tu hora local)"
+              value={formatDateTime(quake.time)}
+            />
+            <DetailRow label="Hora UTC" value={formatUtc(quake.time)} />
+            <DetailRow label="Última revisión" value={timeAgo(quake.updated)} />
             <DetailRow label="Profundidad" value={formatDepth(quake.depthKm)} />
             <DetailRow
               label="Coordenadas"
               value={formatCoordinates(quake.latitude, quake.longitude)}
             />
+            <DetailRow label="País" value={quake.countryName ?? 'Sin país'} />
+            <DetailRow
+              label="Duración"
+              value={formatDuration(quake.durationSeconds, quake.durationSource)}
+            />
+            {quake.mmi !== null && (
+              <DetailRow label="Intensidad instrumental" value={`MMI ${quake.mmi.toFixed(1)}`} />
+            )}
+            {quake.cdi !== null && (
+              <DetailRow label="Intensidad comunitaria" value={`CDI ${quake.cdi.toFixed(1)}`} />
+            )}
+            {quake.significance !== null && (
+              <DetailRow label="Significancia USGS" value={String(quake.significance)} />
+            )}
+            {quake.network && <DetailRow label="Red sísmica" value={quake.network.toUpperCase()} />}
+            {quake.stationCount !== null && (
+              <DetailRow label="Estaciones" value={String(quake.stationCount)} />
+            )}
             {formatFelt(quake.felt) && <DetailRow label="Reportes" value={formatFelt(quake.felt)!} />}
             <DetailRow label="Identificador" value={quake.id} mono />
 

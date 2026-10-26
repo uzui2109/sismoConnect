@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 import { navigationTheme } from '@/lib/navigation-theme';
 import { ThemePreferenceProvider, useThemePreference } from '@/hooks/use-theme-preference';
+import { useNotificationObserver } from '@/hooks/use-notification-observer';
 import { ThemedText } from '@/components/themed-text';
 
 // Hold the native splash until Firebase has restored any persisted session.
@@ -32,6 +33,7 @@ function RootNavigator() {
   const { resolved } = useThemePreference();
   const theme = navigationTheme(resolved === 'dark');
   const [ready, setReady] = useState(false);
+  useNotificationObserver();
 
   // One extra frame so the navigator has mounted before the splash is released,
   // otherwise Android shows a blank frame between splash and first screen.
@@ -69,6 +71,13 @@ function RootNavigator() {
         </Stack.Protected>
         <Stack.Protected guard={!!user}>
           <Stack.Screen name="(app)" />
+          <Stack.Screen name="chat/[chatId]" />
+          <Stack.Screen name="group/[chatId]" />
+          <Stack.Screen name="user/[uid]" />
+          <Stack.Screen name="profile/edit" />
+          <Stack.Screen name="reports" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="admin/reports" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>
