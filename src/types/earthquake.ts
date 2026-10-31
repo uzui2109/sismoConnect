@@ -26,6 +26,7 @@ export type Quake = {
   status: string;
   /** Magnitude scale used, e.g. `mb`, `ml`, `mww`. */
   magnitudeType: string | null;
+<<<<<<< HEAD
   /** Country resolved offline from the epicentre coordinates. */
   countryCode: string | null;
   countryName: string | null;
@@ -42,6 +43,8 @@ export type Quake = {
   network: string | null;
   /** Number of stations used in the solution. */
   stationCount: number | null;
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 };
 
 /** Magnitude range bucket used by the filters and the map legend. */

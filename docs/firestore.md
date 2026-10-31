@@ -229,8 +229,11 @@ Archivo: [`firestore.rules`](../firestore.rules) en la raíz. Resumen:
 | `test` | Denegada | Denegada |
 
 - La pertenencia a un chat se comprueba con `exists(/chats/{chatId}/members/{uid})`.
+<<<<<<< HEAD
 - La Sala Global (`global_sala_comunitaria`) es legible por cualquier usuario autenticado;
   las escrituras siguen reservadas al servidor.
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 - El default es denegar: cualquier colección no listada queda cerrada.
 - No se permite `if true` en Firestore. Storage sí permite lectura pública de avatares,
   pero solo el dueño escribe los dos slots conocidos con límite de 2 MB.

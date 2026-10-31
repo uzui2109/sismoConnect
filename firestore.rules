@@ -14,6 +14,7 @@ service cloud.firestore {
       return signedIn() && uid() == userId;
     }
 
+<<<<<<< HEAD
     // The global room is open to every authenticated user. The server still
     // owns all writes, so this only grants read access.
     function isGlobalChat(chatId) {
@@ -24,6 +25,11 @@ service cloud.firestore {
       return signedIn()
         && (isGlobalChat(chatId)
           || exists(/databases/$(database)/documents/chats/$(chatId)/members/$(uid())));
+=======
+    function isChatMember(chatId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/chats/$(chatId)/members/$(uid()));
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     }
 
     // Personal alerts. Queries are scoped by userId, and the rules make the
@@ -39,7 +45,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+<<<<<<< HEAD
     // Private account document. Only the owner reads it; writes go through Functions.
+=======
+    // Private account document. Profile writes go through Cloud Functions so
+    // counters such as unlocks cannot be forged by the client.
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow write: if false;

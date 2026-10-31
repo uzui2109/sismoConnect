@@ -33,6 +33,7 @@ export function formatDateTime(epochMs: number): string {
   return `${formatDate(epochMs)} · ${formatTime(epochMs)}`;
 }
 
+<<<<<<< HEAD
 export function formatUtc(epochMs: number): string {
   return new Intl.DateTimeFormat('es', {
     day: '2-digit',
@@ -45,6 +46,8 @@ export function formatUtc(epochMs: number): string {
   }).format(new Date(epochMs));
 }
 
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 /** "M 4.5" — the label shown next to every event. */
 export function formatMagnitude(magnitude: number | null): string {
   return magnitude === null ? 'M —' : `M ${magnitude.toFixed(1)}`;
@@ -64,6 +67,7 @@ export function formatFelt(felt: number | null): string | null {
   return felt === null || felt === 0 ? null : `${felt} persona${felt === 1 ? '' : 's'}`;
 }
 
+<<<<<<< HEAD
 export function formatDuration(seconds: number | null, source: string | null): string {
   if (seconds === null || !Number.isFinite(seconds) || seconds <= 0) {
     return 'Duración no disponible';
@@ -72,6 +76,8 @@ export function formatDuration(seconds: number | null, source: string | null): s
   return `${rounded} s${source ? ` · ${source}` : ''}`;
 }
 
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 export function pluralize(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }

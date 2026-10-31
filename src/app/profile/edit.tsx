@@ -175,22 +175,38 @@ export default function EditProfileScreen() {
     );
   }
 
+<<<<<<< HEAD
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ThemedText type="small" themeColor="textSecondary">
           Cargando perfil...
+=======
+  if (loading || !hydrated) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
+        <ThemedText type="small" themeColor="textSecondary">
+          Cargando perfil…
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
         </ThemedText>
       </View>
     );
   }
 
+<<<<<<< HEAD
   if (!profile) {
+=======
+  if (!profile || error) {
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <EmptyState
           title="No se pudo cargar el perfil"
+<<<<<<< HEAD
           description={error ?? 'Pulsa reintentar para crear tu perfil.'}
+=======
+          description={error ?? 'Comprueba que las funciones de Firebase estén desplegadas.'}
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
         />
         <Button label="Reintentar" fullWidth={false} onPress={() => void refresh()} />
         <Button label="Volver" variant="text" fullWidth={false} onPress={() => router.back()} />

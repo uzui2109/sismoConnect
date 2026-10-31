@@ -37,11 +37,15 @@ export function useFriends() {
       setOutgoing([]);
       setBlocked([]);
       setLoading(false);
+<<<<<<< HEAD
       setError(null);
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
       return;
     }
 
     let active = true;
+<<<<<<< HEAD
     let readyCount = 0;
     const total = 4;
     const markReady = () => {
@@ -56,11 +60,18 @@ export function useFriends() {
       if (active) {
         setError((prev) => prev ?? socialErrorMessage(listenerError));
         markReady();
+=======
+    const fail = (listenerError: Error) => {
+      if (active) {
+        setError(socialErrorMessage(listenerError));
+        setLoading(false);
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
       }
     };
 
     setLoading(true);
     setError(null);
+<<<<<<< HEAD
     readyCount = 0;
 
     const unsubscribeFriends = subscribeToFriendships(
@@ -101,6 +112,22 @@ export function useFriends() {
       },
       fail
     );
+=======
+    const unsubscribeFriends = subscribeToFriendships(uid, (next) => {
+      if (!active) return;
+      setFriends(next.sort((a, b) => a.displayName.localeCompare(b.displayName, 'es')));
+      setLoading(false);
+    }, fail);
+    const unsubscribeIncoming = subscribeToIncomingRequests(uid, (next) => {
+      if (active) setIncoming(next);
+    }, fail);
+    const unsubscribeOutgoing = subscribeToOutgoingRequests(uid, (next) => {
+      if (active) setOutgoing(next);
+    }, fail);
+    const unsubscribeBlocked = subscribeToBlockedProfiles(uid, (next) => {
+      if (active) setBlocked(next);
+    }, fail);
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 
     return () => {
       active = false;

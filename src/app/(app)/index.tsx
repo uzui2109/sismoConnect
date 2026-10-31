@@ -153,7 +153,11 @@ export default function MonitorScreen() {
       </View>
 
       {loading ? (
+<<<<<<< HEAD
         <View style={[styles.list, styles.scrollContainer]}>
+=======
+        <View style={styles.list}>
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
           {Array.from({ length: 6 }).map((_, index) => (
             <SkeletonRow key={index} />
           ))}
@@ -162,12 +166,19 @@ export default function MonitorScreen() {
         <ErrorState message={error} onRetry={() => void refetch()} />
       ) : (
         <SectionList
+<<<<<<< HEAD
           style={[styles.scrollContainer, { minHeight: 0 }]}
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
           sections={[{ key: 'all', data: visible }]}
           keyExtractor={(quake) => quake.id}
           contentContainerStyle={[
             styles.list,
+<<<<<<< HEAD
             { paddingBottom: insets.bottom + 96, maxWidth: MaxContentWidth, flexGrow: 1 },
+=======
+            { paddingBottom: insets.bottom + 96, maxWidth: MaxContentWidth },
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
           ]}
           stickySectionHeadersEnabled={false}
           renderSectionHeader={() => (
@@ -297,10 +308,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
+<<<<<<< HEAD
   scrollContainer: {
     flex: 1,
     minHeight: 0,
   },
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
   sectionHeader: {
     paddingBottom: Spacing.two,
   },

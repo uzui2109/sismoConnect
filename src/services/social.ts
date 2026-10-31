@@ -10,8 +10,14 @@ import {
   where,
   type DocumentData,
 } from 'firebase/firestore';
+<<<<<<< HEAD
 
 import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebase';
+=======
+import { httpsCallable } from 'firebase/functions';
+
+import { getFirebaseFirestore, getFirebaseFunctions } from '@/lib/firebase';
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 import type {
   Chat,
   ChatMessage,
@@ -23,8 +29,11 @@ import type {
   UserProfile,
 } from '@/types/social';
 
+<<<<<<< HEAD
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || '';
 
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 export function toMillis(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (value && typeof (value as { toMillis?: () => number }).toMillis === 'function') {
@@ -179,6 +188,7 @@ export function subscribeToFriendships(
   const stop = onSnapshot(
     query(collection(db, 'friendships'), where('memberIds', 'array-contains', uid)),
     (snapshot) => {
+<<<<<<< HEAD
       try {
         const otherUids = snapshot.docs
           .map((document) => (document.data().memberIds as string[] | undefined) ?? [])
@@ -194,6 +204,15 @@ export function subscribeToFriendships(
       } catch (err) {
         if (active) onError?.(err instanceof Error ? err : new Error(String(err)));
       }
+=======
+      const otherUids = snapshot.docs
+        .map((document) => (document.data().memberIds as string[] | undefined) ?? [])
+        .map((members) => members.find((member) => member !== uid))
+        .filter((value): value is string => Boolean(value));
+      void getPublicProfiles(otherUids).then((friends) => {
+        if (active) onData(friends);
+      });
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     },
     (error) => onError?.(error)
   );
@@ -215,6 +234,7 @@ function subscribeToRequests(
   const unsubscribe = onSnapshot(
     query(collection(db, 'friendRequests'), where(field, '==', uid)),
     (snapshot) => {
+<<<<<<< HEAD
       try {
         const pending = snapshot.docs
           .map((document) => {
@@ -251,6 +271,36 @@ function subscribeToRequests(
       } catch (err) {
         if (active) onError?.(err instanceof Error ? err : new Error(String(err)));
       }
+=======
+      const pending = snapshot.docs
+        .map((document) => {
+          const data = document.data();
+          return {
+            id: document.id,
+            fromUid: stringValue(data.fromUid),
+            toUid: stringValue(data.toUid),
+            status: stringValue(data.status, 'unknown') as FriendRequest['status'],
+            createdAt: toMillis(data.createdAt),
+          };
+        })
+        .filter((request) => request.status === 'pending');
+      const profileUids = pending.map((request) =>
+        field === 'toUid' ? request.fromUid : request.toUid
+      );
+      void getPublicProfiles(profileUids).then((profiles) => {
+        if (!active) return;
+        const byUid = new Map(profiles.map((profile) => [profile.uid, profile]));
+        onData(
+          pending
+            .map((request) => ({
+              ...request,
+              profile:
+                byUid.get(field === 'toUid' ? request.fromUid : request.toUid) ?? null,
+            }))
+            .sort((a, b) => b.createdAt - a.createdAt)
+        );
+      });
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     },
     (error) => onError?.(error)
   );
@@ -287,6 +337,7 @@ export function subscribeToBlockedProfiles(
   const unsubscribe = onSnapshot(
     query(collection(db, 'blocks'), where('blockerUid', '==', uid)),
     (snapshot) => {
+<<<<<<< HEAD
       try {
         const blockedUids = snapshot.docs
           .map((document) => stringValue(document.data().blockedUid))
@@ -301,6 +352,14 @@ export function subscribeToBlockedProfiles(
       } catch (err) {
         if (active) onError?.(err instanceof Error ? err : new Error(String(err)));
       }
+=======
+      const blockedUids = snapshot.docs
+        .map((document) => stringValue(document.data().blockedUid))
+        .filter(Boolean);
+      void getPublicProfiles(blockedUids).then((profiles) => {
+        if (active) onData(profiles);
+      });
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     },
     (error) => onError?.(error)
   );
@@ -406,6 +465,7 @@ export function subscribeToMessages(
   );
 }
 
+<<<<<<< HEAD
 async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
   path: string,
   data: TInput
@@ -466,10 +526,13 @@ async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
   }
 }
 
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 async function invoke<TInput extends Record<string, unknown>, TOutput>(
   name: string,
   data: TInput
 ): Promise<TOutput> {
+<<<<<<< HEAD
   const map: Record<string, string> = {
     bootstrapProfile: 'profiles/bootstrap',
     claimUsername: 'profiles/claimUsername',
@@ -495,6 +558,11 @@ async function invoke<TInput extends Record<string, unknown>, TOutput>(
   };
   const path = map[name] || name;
   return invokeHttp(path, data);
+=======
+  const callable = httpsCallable<TInput, TOutput>(getFirebaseFunctions(), name);
+  const result = await callable(data);
+  return result.data;
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 }
 
 export function bootstrapProfile() {
@@ -554,10 +622,13 @@ export function reportUser(uid: string, reason: string, details: string) {
   );
 }
 
+<<<<<<< HEAD
 export function joinGlobalChat() {
   return invoke<Record<string, never>, { chatId: string }>('joinGlobalChat', {});
 }
 
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 export function createDirectChat(uid: string) {
   return invoke<{ uid: string }, { chatId: string }>('createDirectChat', { uid });
 }
@@ -628,6 +699,7 @@ export function fetchEmergencyState(chatId: string) {
 }
 
 export function socialErrorMessage(error: unknown): string {
+<<<<<<< HEAD
   if (
     error instanceof TypeError &&
     /failed to fetch|network request failed|networkerror/i.test(error.message)
@@ -640,6 +712,8 @@ export function socialErrorMessage(error: unknown): string {
       return 'No tienes permiso para acceder a este contenido.';
     }
   }
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
   if (error && typeof error === 'object' && 'message' in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === 'string' && message.trim()) {

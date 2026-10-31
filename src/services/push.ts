@@ -7,12 +7,23 @@ import { httpsCallable } from 'firebase/functions';
 import { Platform } from 'react-native';
 
 import { getFirebaseFunctions } from '@/lib/firebase';
+<<<<<<< HEAD
 import type { PushRegistrationResult } from '@/types/push';
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 
 const DEVICE_KEY = 'sismoconnect:push-device-id';
 const ENABLED_KEY = 'sismoconnect:push-enabled';
 
+<<<<<<< HEAD
 export type { PushRegistrationResult };
+=======
+export type PushRegistrationResult =
+  | { status: 'granted'; message?: string }
+  | { status: 'denied'; message: string }
+  | { status: 'unsupported'; message: string }
+  | { status: 'error'; message: string };
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 
 export function configureNotificationHandler() {
   Notifications.setNotificationHandler({

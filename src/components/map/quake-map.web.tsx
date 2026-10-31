@@ -1,5 +1,9 @@
 import React, { memo, useMemo } from 'react';
+<<<<<<< HEAD
 import { Platform, StyleSheet, Text, View } from 'react-native';
+=======
+import { StyleSheet, Text, View } from 'react-native';
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
 
 import { quakeColor, Radius } from '@/constants/theme';
@@ -75,10 +79,13 @@ function QuakeMapImpl({ quakes, selectedId, onSelect }: Props) {
 
         {quakes.map((quake) => {
           const selected = quake.id === selectedId;
+<<<<<<< HEAD
           const handleSelect = () => {
             haptics.tap();
             onSelect?.(quake);
           };
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
           return (
             <Circle
               key={quake.id}
@@ -89,7 +96,14 @@ function QuakeMapImpl({ quakes, selectedId, onSelect }: Props) {
               stroke={selected ? theme.text : 'none'}
               strokeWidth={selected ? 2 : 0}
               opacity={0.9}
+<<<<<<< HEAD
               {...(Platform.OS === 'web' ? { onClick: handleSelect } : { onPress: handleSelect })}
+=======
+              onPress={() => {
+                haptics.tap();
+                onSelect?.(quake);
+              }}
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
             />
           );
         })}

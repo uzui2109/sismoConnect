@@ -11,7 +11,10 @@ import {
   updateNotificationPrefs as updateNotificationPrefsRequest,
 } from '@/services/social';
 import type { NotificationPrefs, PublicProfile, UserProfile } from '@/types/social';
+<<<<<<< HEAD
 import { describeError } from '@/utils/errors';
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 
 export function useProfile() {
   const { user, isConfigured, isLocalGuest } = useAuth();
@@ -26,12 +29,16 @@ export function useProfile() {
     if (!uid) {
       setProfile(null);
       setLoading(false);
+<<<<<<< HEAD
       setError(null);
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
       return;
     }
 
     let active = true;
     setLoading(true);
+<<<<<<< HEAD
     setError(null);
 
     try {
@@ -91,20 +98,63 @@ export function useProfile() {
       }
       return undefined;
     }
+=======
+    const unsubscribe = subscribeToOwnProfile(
+      uid,
+      (next) => {
+        if (!active) return;
+        setProfile(next);
+        setLoading(false);
+      },
+      (listenerError) => {
+        if (!active) return;
+        setError(socialErrorMessage(listenerError));
+        setLoading(false);
+      }
+    );
+
+    if (bootstrapped.current !== uid) {
+      bootstrapped.current = uid;
+      void bootstrapProfile()
+        .then((next) => {
+          if (active) {
+            setProfile(next);
+            setError(null);
+          }
+        })
+        .catch((bootstrapError) => {
+          if (active) setError(socialErrorMessage(bootstrapError));
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
   }, [uid]);
 
   const refresh = useCallback(async () => {
     if (!uid) return null;
     setLoading(true);
+<<<<<<< HEAD
     setError(null);
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     try {
       const next = await bootstrapProfile();
       setProfile(next);
       setError(null);
       return next;
     } catch (refreshError) {
+<<<<<<< HEAD
       console.error('[useProfile] refresh failed:', refreshError);
       console.error('[useProfile] refresh error details:', describeError(refreshError));
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
       setError(socialErrorMessage(refreshError));
       throw refreshError;
     } finally {

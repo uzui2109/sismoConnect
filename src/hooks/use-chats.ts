@@ -28,7 +28,10 @@ export function useChats() {
     if (!uid) {
       setChats([]);
       setLoading(false);
+<<<<<<< HEAD
       setError(null);
+=======
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
       return;
     }
 
@@ -43,9 +46,14 @@ export function useChats() {
         setLoading(false);
       },
       (listenerError) => {
+<<<<<<< HEAD
         console.error('[useChats] subscribeToChatIndex error:', listenerError);
         if (!active) return;
         setError((prev) => prev ?? socialErrorMessage(listenerError));
+=======
+        if (!active) return;
+        setError(socialErrorMessage(listenerError));
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
         setLoading(false);
       }
     );
@@ -108,9 +116,14 @@ export function useChat(chatId: string | null) {
     setLoading(true);
     setError(null);
     const fail = (listenerError: Error) => {
+<<<<<<< HEAD
       console.error('[useChat] subscription error:', listenerError);
       if (active) {
         setError((prev) => prev ?? socialErrorMessage(listenerError));
+=======
+      if (active) {
+        setError(socialErrorMessage(listenerError));
+>>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
         setLoading(false);
       }
     };
