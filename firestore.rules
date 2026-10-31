@@ -1,0 +1,128 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && uid() == userId;
+    }
+
+    // The global room is open to every authenticated user. The server still
+    // owns all writes, so this only grants read access.
+    function isGlobalChat(chatId) {
+      return chatId == 'global_sala_comunitaria';
+    }
+
+    function isChatMember(chatId) {
+      return signedIn()
+        && (isGlobalChat(chatId)
+          || exists(/databases/$(database)/documents/chats/$(chatId)/members/$(uid())));
+    }
+
+    // Personal alerts. Queries are scoped by userId, and the rules make the
+    // owner check authoritative even if a client forgets the filter.
+    match /alertas/{alertId} {
+      allow read: if signedIn() && resource.data.userId == uid();
+      allow create: if signedIn() && request.resource.data.userId == uid();
+      allow update, delete: if signedIn() && resource.data.userId == uid();
+    }
+
+    // The old demo collection is closed. The documents are not deleted.
+    match /test/{documentId} {
+      allow read, write: if false;
+    }
+
+    // Private account document. Only the owner reads it; writes go through Functions.
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+      match /chatIndex/{chatId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Usernames are claimed atomically by a callable function.
+    match /usernames/{username} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /friendRequests/{requestId} {
+      allow read: if signedIn()
+        && (resource.data.fromUid == uid() || resource.data.toUid == uid());
+      allow write: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow read: if signedIn() && uid() in resource.data.memberIds;
+      allow write: if false;
+    }
+
+    match /blocks/{blockId} {
+      allow read: if signedIn() && resource.data.blockerUid == uid();
+      allow write: if false;
+    }
+
+    match /reports/{reportId} {
+      allow read, write: if false;
+    }
+
+    match /chats/{chatId} {
+      allow read: if isChatMember(chatId);
+      allow write: if false;
+
+      match /members/{memberId} {
+        allow read: if isChatMember(chatId);
+        allow write: if false;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isChatMember(chatId);
+        allow write: if false;
+      }
+    }
+
+    match /config/{documentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // In-app inbox. Only the recipient can read; writes come from Functions.
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.uid == uid();
+      allow write: if false;
+    }
+
+    // FCM tokens and cache/state documents are server-only.
+    match /pushDevices/{deviceId} {
+      allow read, write: if false;
+    }
+
+    match /system/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /moderationActions/{actionId} {
+      allow read, write: if false;
+    }
+
+    // A user can inspect their own SSV receipts, never another user's.
+    match /admobRewards/{transactionId} {
+      allow read: if signedIn() && resource.data.uid == uid();
+      allow write: if false;
+    }
+  }
+}
