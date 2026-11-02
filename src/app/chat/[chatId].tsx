@@ -3,6 +3,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   Share,
@@ -53,6 +54,7 @@ export default function ChatScreen() {
   const [emergencyUntil, setEmergencyUntil] = useState(0);
   const [now, setNow] = useState(0);
   const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+  const [menuOpen, setMenuOpen] = useState(false);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   useEffect(() => {
@@ -129,14 +131,7 @@ export default function ChatScreen() {
 
   function openGroupMenu() {
     if (!chat || chat.type !== 'group' || !chatId) return;
-    Alert.alert(chat.title, 'Opciones del grupo', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Ajustes del grupo',
-        onPress: () => router.push(`/group/${chatId}` as Href),
-      },
-      { text: 'Compartir invitación', onPress: shareInvite },
-    ]);
+    setMenuOpen(true);
   }
 
   function confirmReport(message: ChatMessage) {
@@ -423,6 +418,70 @@ export default function ChatScreen() {
           </ThemedText>
         </Pressable>
       </View>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}>
+        <View style={[styles.modalScrim, { backgroundColor: theme.scrim }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenuOpen(false)} />
+          <View style={[styles.modalCard, { backgroundColor: theme.background }]}>
+            <ThemedText type="subtitle" style={styles.modalTitle}>
+              {chat?.title || 'Chat'}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {chat?.description || 'Sin descripción'}
+            </ThemedText>
+            <View style={styles.modalSection}>
+              <ThemedText type="smallBold" themeColor="textSecondary">
+                Miembros
+              </ThemedText>
+              <ThemedText type="small">
+                {chat?.memberIds.length ?? 0}
+              </ThemedText>
+              <ThemedText type="smallBold" themeColor="textSecondary">
+                Tipo
+              </ThemedText>
+              <ThemedText type="small">
+                {chat?.type === 'group' ? 'Grupo' : 'Privado'}
+              </ThemedText>
+            </View>
+            {chat?.type === 'group' && chat?.inviteCode ? (
+              <View style={styles.modalSection}>
+                <Button
+                  label="Compartir invitación"
+                  variant="tonal"
+                  fullWidth={false}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    shareInvite();
+                  }}
+                />
+              </View>
+            ) : null}
+            {chat?.type === 'group' && chat?.id !== 'global_sala_comunitaria' ? (
+              <View style={styles.modalSection}>
+                <Button
+                  label="Ajustes del grupo"
+                  variant="outlined"
+                  fullWidth={false}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    router.push(`/group/${chatId}` as Href);
+                  }}
+                />
+              </View>
+            ) : null}
+            <Button
+              label="Cerrar"
+              variant="text"
+              fullWidth={false}
+              onPress={() => setMenuOpen(false)}
+            />
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -537,5 +596,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalScrim: { flex: 1, justifyContent: 'center', padding: Spacing.four },
+  modalCard: {
+    borderRadius: Radius.xl,
+    padding: Spacing.four,
+    gap: Spacing.three,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  modalTitle: { fontSize: 24, lineHeight: 30 },
+  modalSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#CCCCCC',
   },
 });

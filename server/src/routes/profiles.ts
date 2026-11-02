@@ -8,6 +8,23 @@ const router = Router();
 const MAX_DISPLAY_NAME = 40;
 const MAX_BIO = 160;
 
+const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
+
+const RESERVED_USERNAMES = new Set([
+  'admin',
+  'administrator',
+  'soporte',
+  'support',
+  'sismoconnect',
+  'system',
+  'sistema',
+  'moderator',
+  'moderador',
+  'root',
+  'firebase',
+  'usgs',
+]);
+
 function cleanString(value: unknown, max: number): string {
   if (typeof value !== 'string') return '';
   return value.trim().slice(0, max);
@@ -192,6 +209,74 @@ router.post('/updateProfile', requireAuth, async (req: AuthedRequest, res) => {
     res.json(result);
   } catch (e: any) {
     res.status(400).json({ message: e?.message || 'Error al actualizar perfil' });
+  }
+});
+
+router.post('/claimUsername', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const { username } = req.body || {};
+    const normalized = typeof username === 'string' ? username.trim().toLowerCase() : '';
+
+    if (!USERNAME_REGEX.test(normalized)) {
+      return res.status(400).json({
+        message: 'El usuario debe tener entre 3 y 20 caracteres: letras minúsculas, números o guion bajo.',
+      });
+    }
+
+    if (RESERVED_USERNAMES.has(normalized)) {
+      return res.status(409).json({ message: 'Ese nombre de usuario está reservado.' });
+    }
+
+    await db().runTransaction(async (tx) => {
+      const userRef = db().doc(`users/${uid}`);
+      const publicRef = db().doc(`publicProfiles/${uid}`);
+      const usernameRef = db().doc(`usernames/${normalized}`);
+
+      const [userSnap, publicSnap, usernameSnap] = await Promise.all([
+        tx.get(userRef),
+        tx.get(publicRef),
+        tx.get(usernameRef),
+      ]);
+
+      if (!userSnap.exists) {
+        throw new Error('Usuario no encontrado.');
+      }
+
+      if (usernameSnap.exists) {
+        const existingUid = usernameSnap.get('uid');
+        if (existingUid && existingUid !== uid) {
+          throw new Error('Ese nombre de usuario ya está en uso.');
+        }
+      }
+
+      const previousUsername = userSnap.get('username');
+
+      if (previousUsername && previousUsername !== normalized) {
+        const prevRef = db().doc(`usernames/${previousUsername}`);
+        const prevSnap = await tx.get(prevRef);
+        if (prevSnap.exists && prevSnap.get('uid') === uid) {
+          tx.delete(prevRef);
+        }
+      }
+
+      tx.set(usernameRef, { uid, username: normalized, createdAt: Date.now() });
+      tx.set(userRef, { username: normalized, updatedAt: Date.now() }, { merge: true });
+      if (publicSnap.exists) {
+        tx.set(publicRef, { username: normalized, updatedAt: Date.now() }, { merge: true });
+      }
+    });
+
+    res.json({ username: normalized });
+  } catch (e: any) {
+    const message = e?.message || 'Error al reclamar nombre de usuario';
+    if (/ya está en uso|reservado/.test(message)) {
+      return res.status(409).json({ message });
+    }
+    if (/Usuario no encontrado|debe tener/.test(message)) {
+      return res.status(400).json({ message });
+    }
+    res.status(400).json({ message });
   }
 });
 

@@ -1,18 +1,11 @@
-import { httpsCallable } from 'firebase/functions';
-
-import { getFirebaseFunctions } from '@/lib/firebase';
+import { invoke } from './social';
 import type { SituationFeed } from '@/types/situation';
 
 export const SITUATION_ATTRIBUTION =
   'Informes oficiales: GDACS (Comisión Europea) y ReliefWeb (OCHA).';
 
 export async function fetchSituationReports(): Promise<SituationFeed> {
-  const callable = httpsCallable<Record<string, never>, SituationFeed>(
-    getFirebaseFunctions(),
-    'getSituationReports'
-  );
-  const result = await callable({});
-  return result.data;
+  return invoke<Record<string, never>, SituationFeed>('getSituationReports', {});
 }
 
 export function situationErrorMessage(error: unknown): string {

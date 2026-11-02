@@ -5,6 +5,7 @@ import profiles from './routes/profiles';
 import social from './routes/social';
 import chats from './routes/chats';
 import emergency from './routes/emergency';
+import situation from './routes/situation';
 import { getAdminApp } from './lib/firebase-admin';
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/profiles', profiles);
 app.use('/social', social);
 app.use('/chats', chats);
 app.use('/emergencyState', emergency);
+app.use('/situation', situation);
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Ruta no encontrada.' });

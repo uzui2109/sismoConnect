@@ -1,5 +1,5 @@
 import { getApp, initializeApp } from 'firebase/app';
-import { browserLocalPersistence, getAuth, initializeAuth } from 'firebase/auth';
+import { browserLocalPersistence, browserPopupRedirectResolver, getAuth, initializeAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
@@ -27,6 +27,7 @@ export function getFirebaseAuth() {
 
   instance ??= initializeAuth(initializeApp(firebaseConfig), {
     persistence: browserLocalPersistence,
+    popupRedirectResolver: browserPopupRedirectResolver,
   });
 
   return instance;

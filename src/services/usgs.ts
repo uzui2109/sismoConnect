@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { getCountryAt } from '@/services/countries';
-=======
->>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 import type { FeedWindow, MagnitudeFilter, Quake, RegionAggregate } from '@/types/earthquake';
 
 const FEED_BASE = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary';
@@ -43,13 +40,10 @@ type RawProperties = {
   sig?: number;
   magType: string | null;
   type: string;
-<<<<<<< HEAD
   mmi?: number | null;
   cdi?: number | null;
   net?: string | null;
   nst?: number | null;
-=======
->>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 };
 
 type RawFeature = {
@@ -74,12 +68,9 @@ function normalize(feature: RawFeature): Quake | null {
   if (properties.type !== 'earthquake') return null;
 
   const [longitude, latitude, depth] = geometry.coordinates;
-<<<<<<< HEAD
   const safeLatitude = toNumber(latitude, 0);
   const safeLongitude = toNumber(longitude, 0);
   const country = getCountryAt(safeLatitude, safeLongitude);
-=======
->>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
 
   return {
     id: feature.id,
@@ -88,13 +79,8 @@ function normalize(feature: RawFeature): Quake | null {
     time: toNumber(properties.time, 0),
     updated: toNumber(properties.updated, 0),
     depthKm: toNumber(depth, 0),
-<<<<<<< HEAD
     longitude: safeLongitude,
     latitude: safeLatitude,
-=======
-    longitude: toNumber(longitude, 0),
-    latitude: toNumber(latitude, 0),
->>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
     url: properties.url,
     tsunami: properties.tsunami === 1 ? 1 : 0,
     felt: typeof properties.felt === 'number' ? properties.felt : null,
@@ -105,7 +91,6 @@ function normalize(feature: RawFeature): Quake | null {
       : null,
     status: properties.status ?? 'automatic',
     magnitudeType: properties.magType ?? null,
-<<<<<<< HEAD
     countryCode: country?.code ?? null,
     countryName: country?.name ?? null,
     durationSeconds: null,
@@ -115,8 +100,6 @@ function normalize(feature: RawFeature): Quake | null {
     significance: typeof properties.sig === 'number' ? properties.sig : null,
     network: properties.net?.trim() || null,
     stationCount: typeof properties.nst === 'number' ? properties.nst : null,
-=======
->>>>>>> 07708ccf49bb5d28cf4b0096fa88d1c54fa3dd46
   };
 }
 

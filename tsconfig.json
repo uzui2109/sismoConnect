@@ -21,6 +21,16 @@
     "node_modules",
     "dist",
     "tests",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/profiles.ts",
+    "src/rewards.ts",
+    "src/social.ts",
+    "src/sources.ts",
+    "src/index.ts",
+    "src/config.ts",
+    "src/notifications.ts",
+    "src/moderation.ts",
+    "src/chats.ts",
+    "functions/src/*"
   ]
 }
