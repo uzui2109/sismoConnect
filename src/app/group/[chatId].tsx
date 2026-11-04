@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -81,7 +82,7 @@ export default function GroupSettingsScreen() {
       <ErrorState
         title="Grupo no disponible"
         message={error ?? 'No pudimos cargar este grupo.'}
-        onRetry={() => router.back()}
+        onRetry={() => goBack()}
       />
     );
   }
@@ -215,7 +216,7 @@ export default function GroupSettingsScreen() {
           accessibilityLabel="Volver al chat"
           onPress={() => {
             haptics.tap();
-            router.back();
+            goBack();
           }}
           style={({ pressed }) => [
             styles.back,

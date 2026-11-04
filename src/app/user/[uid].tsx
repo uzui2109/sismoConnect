@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -149,7 +150,7 @@ export default function PublicProfileScreen() {
           title="Perfil no disponible"
           description={error ?? 'Este perfil no existe o ya no es público.'}
         />
-        <Button label="Volver" variant="tonal" fullWidth={false} onPress={() => router.back()} />
+        <Button label="Volver" variant="tonal" fullWidth={false} onPress={() => goBack()} />
       </View>
     );
   }
@@ -166,7 +167,7 @@ export default function PublicProfileScreen() {
         },
       ]}>
       <View style={styles.topBar}>
-        <Button label="Volver" variant="text" fullWidth={false} onPress={() => router.back()} />
+        <Button label="Volver" variant="text" fullWidth={false} onPress={() => goBack()} />
       </View>
 
       <View style={[styles.cover, { backgroundColor: theme.primaryContainer }]}>

@@ -55,7 +55,9 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 function text(value: unknown, max = 600): string {
-  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'string') return value.trim().slice(0, max);
+  return '';
 }
 
 function optionalNumber(value: unknown): number | null {
@@ -103,21 +105,28 @@ function safeHttpsUrl(value: unknown): string | null {
 }
 
 async function fetchText(url: string): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12_000);
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        accept: 'application/json, application/rss+xml, application/xml, text/xml',
-        'user-agent': 'SismoConnect/1.0 (emergency information aggregator)',
-      },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.text();
-  } finally {
-    clearTimeout(timer);
+  let lastError: Error = new Error('Sin respuesta de la fuente');
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12_000);
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          accept: '*/*',
+          'user-agent': 'SismoConnect/1.0 (emergency information aggregator)',
+        },
+      });
+      if (response.ok) return await response.text();
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    } finally {
+      clearTimeout(timer);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
   }
+  throw lastError;
 }
 
 function gdacsReports(payload: unknown): SituationReport[] {
@@ -278,9 +287,14 @@ export async function getSituationReports(): Promise<SituationFeed> {
         sources,
       };
     }
-    throw new Error(
+    const error = new Error(
       'Las fuentes oficiales no respondieron. Intenta de nuevo en unos minutos.'
-    );
+    ) as Error & { sourceErrors?: Record<string, string> };
+    error.sourceErrors = {
+      gdacs: gdacsResult.status === 'rejected' ? String(gdacsResult.reason) : '',
+      reliefweb: reliefResult.status === 'rejected' ? String(reliefResult.reason) : '',
+    };
+    throw error;
   }
 
   const now = Date.now();

@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
+import { goBack } from '@/utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -48,7 +49,7 @@ export default function NotificationsScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Volver"
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           style={[styles.back, { borderColor: theme.outlineVariant }]}>
           <ThemedText type="smallBold">← Volver</ThemedText>
         </Pressable>

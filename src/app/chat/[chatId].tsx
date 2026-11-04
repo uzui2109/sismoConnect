@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { goBack } from '@/utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radius, Spacing } from '@/constants/theme';
@@ -211,7 +212,7 @@ export default function ChatScreen() {
           title="Chat no disponible"
           description={error ?? 'No perteneces a esta conversación o ya no existe.'}
         />
-        <Button label="Volver" variant="tonal" fullWidth={false} onPress={() => router.back()} />
+        <Button label="Volver" variant="tonal" fullWidth={false} onPress={() => goBack()} />
       </View>
     );
   }
@@ -224,7 +225,7 @@ export default function ChatScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Volver"
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           style={styles.back}>
           <ThemedText type="smallBold">‹</ThemedText>
         </Pressable>

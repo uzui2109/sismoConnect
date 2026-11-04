@@ -47,7 +47,9 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 function text(value: unknown, max = 600): string {
-  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'string') return value.trim().slice(0, max);
+  return '';
 }
 
 function optionalNumber(value: unknown): number | null {
@@ -101,7 +103,7 @@ async function fetchText(url: string): Promise<string> {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        accept: 'application/json, application/rss+xml, application/xml, text/xml',
+        accept: '*/*',
         'user-agent': 'SismoConnect/1.0 (emergency information aggregator)',
       },
     });
@@ -270,10 +272,15 @@ export const getSituationReports = onCall(
           sources,
         };
       }
-      throw new HttpsError(
+      const error = new HttpsError(
         'unavailable',
         'Las fuentes oficiales no respondieron. Intenta de nuevo en unos minutos.'
       );
+      (error as any).sourceErrors = {
+        gdacs: gdacsResult.status === 'rejected' ? String(gdacsResult.reason) : '',
+        reliefweb: reliefResult.status === 'rejected' ? String(reliefResult.reason) : '',
+      };
+      throw error;
     }
 
     const now = Date.now();

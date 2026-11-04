@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { goBack } from '@/utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -99,7 +99,7 @@ export default function EditProfileScreen() {
       });
       haptics.success();
       Alert.alert('Perfil actualizado', 'Tus cambios ya están visibles.');
-      router.back();
+      goBack();
     } catch (saveError) {
       haptics.error();
       setLocalError(socialErrorMessage(saveError));
@@ -170,7 +170,7 @@ export default function EditProfileScreen() {
               : 'Configura Firebase para activar los perfiles sociales.'
           }
         />
-        <Button label="Volver" variant="tonal" fullWidth={false} onPress={() => router.back()} />
+        <Button label="Volver" variant="tonal" fullWidth={false} onPress={() => goBack()} />
       </View>
     );
   }
@@ -193,7 +193,7 @@ export default function EditProfileScreen() {
           description={error ?? 'Pulsa reintentar para crear tu perfil.'}
         />
         <Button label="Reintentar" fullWidth={false} onPress={() => void refresh()} />
-        <Button label="Volver" variant="text" fullWidth={false} onPress={() => router.back()} />
+        <Button label="Volver" variant="text" fullWidth={false} onPress={() => goBack()} />
       </View>
     );
   }
@@ -211,7 +211,7 @@ export default function EditProfileScreen() {
       ]}
       keyboardShouldPersistTaps="handled">
       <View style={styles.topBar}>
-        <Button label="Cancelar" variant="text" fullWidth={false} onPress={() => router.back()} />
+        <Button label="Cancelar" variant="text" fullWidth={false} onPress={() => goBack()} />
       </View>
 
       <View style={styles.heading}>
@@ -389,7 +389,7 @@ export default function EditProfileScreen() {
       </Card>
 
       <Button label="Guardar cambios" loading={saving} disabled={!canSave} onPress={() => void onSave()} />
-      <Button label="Cancelar" variant="text" onPress={() => router.back()} />
+      <Button label="Cancelar" variant="text" onPress={() => goBack()} />
 
       <Modal
         visible={countryOpen}
