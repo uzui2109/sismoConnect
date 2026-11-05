@@ -20,6 +20,7 @@
   "exclude": [
     "node_modules",
     "dist",
+    "sismoconnect",
     "tests",
     "**/*.test.ts",
     "src/profiles.ts",

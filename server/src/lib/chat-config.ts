@@ -1,5 +1,6 @@
-export const COOLDOWN_SECONDS = 60;
+export const COOLDOWN_SECONDS = 30;
 export const EMERGENCY_COOLDOWN_SECONDS = 600;
+export const MAX_STORED_UNLOCKS = 1;
 
 export function toMillis(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;

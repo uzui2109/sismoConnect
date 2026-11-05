@@ -1,12 +1,13 @@
 import { Router } from 'express';
+import { publicErrorMessage } from '../lib/public-error';
 import { db } from '../lib/firebase-admin';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const router = Router();
 
-const MAX_DISPLAY_NAME = 40;
-const MAX_BIO = 160;
+const MAX_DISPLAY_NAME = 60;
+const MAX_BIO = 280;
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 
@@ -37,12 +38,10 @@ router.post('/bootstrap', requireAuth, async (req: AuthedRequest, res) => {
     const userRef = db().doc(`users/${uid}`);
     const publicRef = db().doc(`publicProfiles/${uid}`);
 
-    const token: any = {};
-    const displayName =
-      typeof token.name === 'string' && token.name.trim()
-        ? token.name.trim().slice(0, MAX_DISPLAY_NAME)
-        : 'Explorador sísmico';
-    const photoURL = typeof token.picture === 'string' && token.picture.trim() ? token.picture.trim() : null;
+    const displayName = req.user?.name?.trim()
+      ? req.user.name.trim().slice(0, MAX_DISPLAY_NAME)
+      : 'Explorador sísmico';
+    const photoURL = req.user?.picture?.trim() || null;
 
     await db().runTransaction(async (tx) => {
       const [userSnap, publicSnap] = await Promise.all([tx.get(userRef), tx.get(publicRef)]);
@@ -119,7 +118,7 @@ router.post('/bootstrap', requireAuth, async (req: AuthedRequest, res) => {
     });
   } catch (e: any) {
     console.error('BOOTSTRAP_FATAL', e);
-    res.status(500).json({ message: e?.message || 'Error interno al inicializar el perfil' });
+    res.status(500).json({ message: publicErrorMessage(e, 'Error interno al inicializar el perfil') });
   }
 });
 
@@ -208,7 +207,7 @@ router.post('/updateProfile', requireAuth, async (req: AuthedRequest, res) => {
 
     res.json(result);
   } catch (e: any) {
-    res.status(400).json({ message: e?.message || 'Error al actualizar perfil' });
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al actualizar perfil') });
   }
 });
 
@@ -269,7 +268,7 @@ router.post('/claimUsername', requireAuth, async (req: AuthedRequest, res) => {
 
     res.json({ username: normalized });
   } catch (e: any) {
-    const message = e?.message || 'Error al reclamar nombre de usuario';
+    const message = publicErrorMessage(e, 'Error al reclamar nombre de usuario');
     if (/ya está en uso|reservado/.test(message)) {
       return res.status(409).json({ message });
     }
@@ -280,4 +279,74 @@ router.post('/claimUsername', requireAuth, async (req: AuthedRequest, res) => {
   }
 });
 
+const NOTIFICATION_KEYS = ['earthquakes', 'social', 'messages', 'friends', 'groups'] as const;
+type NotificationPrefs = Record<(typeof NOTIFICATION_KEYS)[number], boolean>;
+
+function normalizeUsernameValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function prefsFrom(value: unknown): NotificationPrefs {
+  const data = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  return {
+    earthquakes: data.earthquakes !== false,
+    social: data.social !== false,
+    messages: data.messages !== false,
+    friends: data.friends !== false,
+    groups: data.groups !== false,
+  };
+}
+
+function partialPrefs(value: unknown): Partial<NotificationPrefs> {
+  const data = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const next: Partial<NotificationPrefs> = {};
+  for (const key of NOTIFICATION_KEYS) {
+    if (typeof data[key] === 'boolean') next[key] = data[key] as boolean;
+  }
+  return next;
+}
+
+router.post('/deleteUsername', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const userRef = db().doc(`users/${uid}`);
+    const result = await db().runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) return { username: null };
+      const username = normalizeUsernameValue(userSnap.get('username'));
+      if (username) tx.delete(db().doc(`usernames/${username}`));
+      const now = Date.now();
+      tx.set(userRef, { username: null, updatedAt: now }, { merge: true });
+      tx.set(
+        db().doc(`publicProfiles/${uid}`),
+        { username: null, updatedAt: now, removedAt: FieldValue.delete() },
+        { merge: true }
+      );
+      return { username: null };
+    });
+    res.json(result);
+  } catch (e: any) {
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al eliminar nombre de usuario') });
+  }
+});
+
+router.post('/updateNotificationPrefs', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const userRef = db().doc(`users/${uid}`);
+    const now = Date.now();
+    const result = await db().runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) {
+        throw new Error('Completa tu perfil antes de editar las notificaciones.');
+      }
+      const next = { ...prefsFrom(userSnap.get('notificationPrefs')), ...partialPrefs(req.body) };
+      tx.set(userRef, { notificationPrefs: next, updatedAt: now }, { merge: true });
+      return next;
+    });
+    res.json(result);
+  } catch (e: any) {
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al actualizar notificaciones') });
+  }
+});
 export default router;

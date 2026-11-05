@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { publicErrorMessage } from '../lib/public-error';
 import { db } from '../lib/firebase-admin';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -59,7 +60,7 @@ router.post('/sendFriendRequest', requireAuth, async (req: AuthedRequest, res) =
 
     res.json(result);
   } catch (e: any) {
-    res.status(400).json({ message: e?.message || 'Error al enviar solicitud' });
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al enviar solicitud') });
   }
 });
 
@@ -95,7 +96,7 @@ router.post('/respondFriendRequest', requireAuth, async (req: AuthedRequest, res
 
     res.json(result);
   } catch (e: any) {
-    res.status(400).json({ message: e?.message || 'Error al responder solicitud' });
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al responder solicitud') });
   }
 });
 
@@ -124,7 +125,7 @@ router.post('/removeFriend', requireAuth, async (req: AuthedRequest, res) => {
 
     res.json({ removed: true });
   } catch (e: any) {
-    res.status(400).json({ message: e?.message || 'Error al eliminar amistad' });
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al eliminar amistad') });
   }
 });
 
@@ -136,19 +137,28 @@ router.post('/blockUser', requireAuth, async (req: AuthedRequest, res) => {
 
     const now = Date.now();
     const blockRef = db().doc(`blocks/${uid}_${otherUid}`);
+    const targetRef = db().doc(`users/${otherUid}`);
     const friendshipId = pairId(uid, otherUid);
     const friendshipRef = db().doc(`friendships/${friendshipId}`);
     const requestRef = db().doc(`friendRequests/request_${friendshipId}`);
 
     await db().runTransaction(async (tx) => {
+      const [targetSnap, requestSnap] = await Promise.all([
+        tx.get(targetRef),
+        tx.get(requestRef),
+      ]);
+      if (!targetSnap.exists) throw new Error('Ese perfil no existe.');
+
       tx.set(blockRef, { blockerUid: uid, blockedUid: otherUid, createdAt: now });
       tx.delete(friendshipRef);
-      tx.set(requestRef, { status: 'blocked', updatedAt: now }, { merge: true });
+      if (requestSnap.exists) {
+        tx.set(requestRef, { status: 'blocked', updatedAt: now }, { merge: true });
+      }
     });
 
     res.json({ blocked: true });
   } catch (e: any) {
-    res.status(400).json({ message: e?.message || 'Error al bloquear' });
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al bloquear') });
   }
 });
 
@@ -159,8 +169,39 @@ router.post('/unblockUser', requireAuth, async (req: AuthedRequest, res) => {
     await db().doc(`blocks/${uid}_${otherUid}`).delete();
     res.json({ blocked: false });
   } catch (e: any) {
-    res.status(400).json({ message: e?.message || 'Error al desbloquear' });
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al desbloquear') });
   }
 });
 
+const REPORT_REASONS = new Set(['spam', 'abuso', 'acoso', 'contenido', 'otro']);
+
+router.post('/reportUser', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const uid = req.user!.uid;
+    const reportedUid = readId(req.body);
+    if (reportedUid === uid) throw new Error('No puedes reportarte a ti mismo.');
+
+    const data = req.body || {};
+    const reason =
+      typeof data.reason === 'string' && REPORT_REASONS.has(data.reason) ? data.reason : 'otro';
+    const details = typeof data.details === 'string' ? data.details.trim().slice(0, 500) : '';
+
+    const targetSnap = await db().doc(`users/${reportedUid}`).get();
+    if (!targetSnap.exists) throw new Error('Ese perfil no existe.');
+
+    const ref = db().collection('reports').doc();
+    await ref.set({
+      reporterUid: uid,
+      reportedUid,
+      reason,
+      details,
+      status: 'open',
+      createdAt: Date.now(),
+    });
+
+    res.json({ reportId: ref.id });
+  } catch (e: any) {
+    res.status(400).json({ message: publicErrorMessage(e, 'Error al reportar usuario') });
+  }
+});
 export default router;

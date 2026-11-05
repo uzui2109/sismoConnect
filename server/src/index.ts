@@ -6,7 +6,9 @@ import social from './routes/social';
 import chats from './routes/chats';
 import emergency from './routes/emergency';
 import situation from './routes/situation';
+import rewards from './routes/rewards';
 import { getAdminApp } from './lib/firebase-admin';
+import { publicErrorMessage } from './lib/public-error';
 
 dotenv.config();
 
@@ -43,6 +45,7 @@ app.use('/social', social);
 app.use('/chats', chats);
 app.use('/emergencyState', emergency);
 app.use('/situation', situation);
+app.use('/rewards', rewards);
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Ruta no encontrada.' });
@@ -51,7 +54,7 @@ app.use((_req, res) => {
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('[server] unhandled error:', err);
   res.status(err?.status || 500).json({
-    message: err?.message || 'Error interno del servidor',
+    message: publicErrorMessage(err, 'Error interno del servidor'),
   });
 });
 

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { publicErrorMessage } from '../lib/public-error';
 import { db } from '../lib/firebase-admin';
 import { EMERGENCY_COOLDOWN_SECONDS, positiveSeconds, toMillis } from '../lib/chat-config';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
@@ -32,7 +33,7 @@ router.post('/', requireAuth, async (req: AuthedRequest, res) => {
   } catch (e: any) {
     console.error('[emergencyState] error:', e?.message);
     return res.status(500).json({
-      message: e?.message || 'Error al consultar el estado de emergencia',
+      message: publicErrorMessage(e, 'Error al consultar el estado de emergencia'),
     });
   }
 });

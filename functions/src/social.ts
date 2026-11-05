@@ -150,14 +150,25 @@ export const blockUser = onCall(CALL_OPTIONS, async (request) => {
 
   const now = Date.now();
   const blockRef = db().doc(`blocks/${uid}_${otherUid}`);
+  const targetRef = db().doc(`users/${otherUid}`);
   const friendshipId = pairId(uid, otherUid);
   const friendshipRef = db().doc(`friendships/${friendshipId}`);
   const requestRef = db().doc(`friendRequests/request_${friendshipId}`);
 
   await db().runTransaction(async (tx) => {
+    const [targetSnap, requestSnap] = await Promise.all([
+      tx.get(targetRef),
+      tx.get(requestRef),
+    ]);
+    if (!targetSnap.exists) {
+      throw new HttpsError('not-found', 'Ese perfil no existe.');
+    }
+
     tx.set(blockRef, { blockerUid: uid, blockedUid: otherUid, createdAt: now });
     tx.delete(friendshipRef);
-    tx.set(requestRef, { status: 'blocked', updatedAt: now }, { merge: true });
+    if (requestSnap.exists) {
+      tx.set(requestRef, { status: 'blocked', updatedAt: now }, { merge: true });
+    }
   });
 
   return { blocked: true };
@@ -180,6 +191,11 @@ export const reportUser = onCall(CALL_OPTIONS, async (request) => {
   const reason = typeof data.reason === 'string' && allowed.has(data.reason) ? data.reason : 'otro';
   const details =
     typeof data.details === 'string' ? data.details.trim().slice(0, 500) : '';
+
+  const targetSnap = await db().doc(`users/${reportedUid}`).get();
+  if (!targetSnap.exists) {
+    throw new HttpsError('not-found', 'Ese perfil no existe.');
+  }
 
   const ref = db().collection('reports').doc();
   await ref.set({

@@ -257,3 +257,59 @@ Antes de desplegar revisa [costos-firebase.md](costos-firebase.md). Como mínimo
 - [ ] AdMob real con SSV validado.
 - [ ] Build de producción instalada y probada.
 - [ ] Tests, typecheck, lint, doctor y export web en verde.
+
+## 11. Respaldos y restauración de Firestore
+
+Firestore no crea respaldos automáticos salvo que el propietario los programe. A continuación los comandos reales de exportación e importación, con los permisos necesarios. Ningún paso asume que exista un respaldo automático vigente.
+
+### Requisitos previos
+
+- Proyecto en plan **Blaze** (pago por uso). Las exportaciones e importaciones no están disponibles en Spark.
+- Cuenta de servicio o usuario con el rol `roles/datastore.importExportAdmin` (o `roles/owner`/`roles/editor` como mínimo).
+- Bucket de Cloud Storage destino con permiso `storage.objects.create` y `storage.objects.get` para la cuenta de servicio que ejecuta la exportación/importación.
+- `gcloud` autenticado (`gcloud auth login` o `GOOGLE_APPLICATION_CREDENTIALS`).
+
+### Exportar (snapshot de toda la base de datos)
+
+```bash
+gcloud auth login
+gcloud config set project sismoconnectfirebase
+gcloud firestore export gs://BUCKET_NAME/sismoconnect-backup-$(date +%Y%m%d)
+```
+
+Opciones útiles:
+- `--async`: devuelve el control inmediatamente y la operación continúa en segundo plano.
+- `--namespace=NAMESPACE`: exporta solo un espacio de nombres (por defecto, `(default)`).
+
+La operación genera un archivo `overall_export_metadata.json` y los fragmentos de datos en el bucket indicado.
+
+### Importar (restaurar desde un respaldo)
+
+```bash
+gcloud firestore import gs://BUCKET_NAME/sismoconnect-backup-20260101/overall_export_metadata.json
+```
+
+- La importación sobrescribe documentos existentes con los del respaldo; no elimina documentos que no estén en el respaldo.
+- Para importar en un proyecto distinto, cámbialo con `gcloud config set project` antes de ejecutar.
+
+### Programar respaldos (no automáticos por defecto)
+
+Firestore no programa exportaciones por sí solo. Opciones reales:
+
+1. **Cloud Scheduler + Cloud Functions**: una función periódica invoca `gcloud firestore export` (o la API `projects.databases.exportDocuments`) y guarda en un bucket con ciclo de vida (por ejemplo, borrar objetos antiguos de 30 días).
+2. **Cron externo** (CI/CD, máquina propia): ejecuta el comando de exportación en una rutina programada y sube el metadata a un bucket con retención definida.
+
+### Retención
+
+- Conservar al menos los últimos 7 respaldos diarios y 1 semanal, ajustado a la tolerancia a pérdida de datos del negocio.
+- Configurar reglas de ciclo de vida del bucket de Storage para expirar objetos antiguos y evitar costos ilimitados.
+- Probar al menos una restauración en un proyecto de staging antes de confiar en el procedimiento en producción.
+
+### Verificar un respaldo
+
+```bash
+gcloud firestore operations describe OPERATION_ID
+```
+
+`OPERATION_ID` se obtiene al iniciar la exportación o importación. El estado debe ser `SUCCESSFUL` antes de considerar el respaldo válido.
+

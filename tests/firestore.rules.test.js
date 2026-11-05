@@ -102,6 +102,16 @@ describe('personal alerts', () => {
       setDoc(doc(db, 'alertas', 'a2'), { userId: 'bob', threshold: 5 })
     );
   });
+
+  it('rejects reassigning an owned alert to another user', async () => {
+    const db = testEnv.authenticatedContext('alice').firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'alertas', 'a3'), { userId: 'alice', threshold: 5 })
+    );
+    await assertFails(
+      setDoc(doc(db, 'alertas', 'a3'), { userId: 'bob', threshold: 5 })
+    );
+  });
 });
 
 describe('friendships, blocks and reports', () => {

@@ -5,8 +5,11 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "pretest": "npm run build",
+    "prestart": "npm run build",
     "start": "node lib/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "node tests/chat-policy.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -10,6 +10,9 @@ import {
   where,
   type DocumentData,
 } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 import { getFirebaseAuth, getFirebaseFirestore } from '@/lib/firebase';
 import type {
@@ -24,6 +27,19 @@ import type {
 } from '@/types/social';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL || '';
+
+function defaultApiBase(): string {
+  if (Platform.OS === 'web') {
+    const host = (globalThis as { location?: { hostname?: string } }).location?.hostname;
+    if (host) return `http://${host}:8085`;
+  }
+  const expoConfig = Constants.expoConfig as { hostUri?: string } | null;
+  const expoGoConfig = (Constants as unknown as { expoGoConfig?: { debuggerHost?: string } })
+    .expoGoConfig;
+  const hostUri = expoConfig?.hostUri || expoGoConfig?.debuggerHost || '';
+  const host = hostUri.split(':')[0];
+  return `http://${host || 'localhost'}:8085`;
+}
 
 export function toMillis(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -137,12 +153,13 @@ export async function searchPublicProfiles(term: string): Promise<PublicProfile[
     const uid = usernameSnap.exists() ? stringValue(usernameSnap.data().uid) : '';
     if (uid) {
       const profile = await getPublicProfile(uid);
-      if (profile) found.set(profile.uid, profile);
+      if (profile?.isPublic) found.set(profile.uid, profile);
     }
   }
 
   const usernameQuery = query(
     collection(db, 'publicProfiles'),
+    where('isPublic', '==', true),
     orderBy('username'),
     where('username', '>=', normalized),
     where('username', '<=', `${normalized}\uf8ff`),
@@ -150,6 +167,7 @@ export async function searchPublicProfiles(term: string): Promise<PublicProfile[
   );
   const displayQuery = query(
     collection(db, 'publicProfiles'),
+    where('isPublic', '==', true),
     orderBy('displayName'),
     where('displayName', '>=', normalized),
     where('displayName', '<=', `${normalized}\uf8ff`),
@@ -406,6 +424,17 @@ export function subscribeToMessages(
   );
 }
 
+async function postJson(url: string, token: string, data: unknown): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
 async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
   path: string,
   data: TInput
@@ -414,19 +443,35 @@ async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
   try {
     const auth = getFirebaseAuth();
     const user = auth.currentUser;
-    if (!user) throw new Error('No autenticado');
-    const token = await user.getIdToken();
-    const base = API_BASE || 'http://localhost:8085';
-    url = `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+    if (!user) {
+      const unauthenticated = new Error('No autenticado') as Error & { status?: number };
+      unauthenticated.status = 401;
+      throw unauthenticated;
+    }
+
+    const base = (API_BASE || defaultApiBase()).replace(/\/+$/, '');
+    url = `${base}/${path.replace(/^\/+/, '')}`;
     console.log('[social.invokeHttp] POST', url);
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
+
+    let res = await postJson(url, await user.getIdToken(), data);
+
+    if (res.status === 401) {
+      // Token expirado o revocado: renovamos una vez y reintentamos.
+      try {
+        res = await postJson(url, await user.getIdToken(true), data);
+      } catch {
+        // Sin red para renovar; se resuelve como sesión expirada abajo.
+      }
+      if (res.status === 401) {
+        await signOut(auth).catch(() => undefined);
+        const expired = new Error(
+          'Tu sesión expiró. Inicia sesión de nuevo.'
+        ) as Error & { status?: number };
+        expired.status = 401;
+        throw expired;
+      }
+    }
+
     const text = await res.text();
     if (!res.ok) {
       const contentType = res.headers.get('content-type') || '';
@@ -457,7 +502,7 @@ async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
   } catch (error) {
     console.error(`[social.invokeHttp] Error calling ${path}:`, error);
     if (error instanceof TypeError && /fetch|network/i.test(error.message)) {
-      const target = url || API_BASE || 'http://localhost:8085';
+      const target = url || API_BASE || defaultApiBase();
       throw new Error(
         `No se pudo conectar con el servidor en ${target}. Verifica que el backend esté en marcha.`
       );
@@ -493,6 +538,8 @@ export async function invoke<TInput extends Record<string, unknown>, TOutput>(
     sendMessage: 'chats/sendMessage',
     markChatRead: 'chats/markChatRead',
     getSituationReports: 'situation/reports',
+    updateNotificationPrefs: 'profiles/updateNotificationPrefs',
+    rewardState: 'rewards/state',
   };
   const path = map[name] || name;
   return invokeHttp(path, data);

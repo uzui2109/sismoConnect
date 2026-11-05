@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { publicErrorMessage } from '../lib/public-error';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
 import { getSituationReports } from '../lib/situation';
 
@@ -9,7 +10,7 @@ router.post('/reports', requireAuth, async (_req: AuthedRequest, res) => {
     const feed = await getSituationReports();
     res.json(feed);
   } catch (e: any) {
-    const message = e?.message || 'Error interno al obtener informes';
+    const message = publicErrorMessage(e, 'Error interno al obtener informes');
     if (/no respondieron|no pudieron|cache/i.test(message)) {
       if (e?.sourceErrors) {
         console.error('[situation] fuentes oficiales con error:', e.sourceErrors);

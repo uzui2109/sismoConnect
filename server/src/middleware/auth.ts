@@ -5,6 +5,8 @@ export interface AuthedRequest extends Request {
   user?: {
     uid: string;
     email?: string;
+    name?: string;
+    picture?: string;
   };
 }
 
@@ -16,7 +18,12 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
       return res.status(401).json({ message: 'No autenticado' });
     }
     const decoded = await auth().verifyIdToken(token);
-    req.user = { uid: decoded.uid, email: decoded.email };
+    req.user = {
+      uid: decoded.uid,
+      email: decoded.email,
+      name: typeof decoded.name === 'string' ? decoded.name : undefined,
+      picture: typeof decoded.picture === 'string' ? decoded.picture : undefined,
+    };
     next();
   } catch (e: any) {
     console.error('[requireAuth] verifyIdToken error:', e?.message);
