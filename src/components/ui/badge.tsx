@@ -11,10 +11,12 @@ type Props = {
 
 /** Small pill used for magnitude, alert level and status tags. */
 export function Badge({ label, color, onDarkBackground }: Props) {
+  const textColor = onDarkBackground ? '#FFFFFF' : color;
+
   return (
-    <View style={styles.badge}>
+    <View style={[styles.badge, { backgroundColor: `${color}24`, borderColor: `${color}59` }]}>
       <View style={[styles.dot, { backgroundColor: color }]} />
-      <ThemedText style={[styles.label, onDarkBackground ? styles.onDark : null]}>{label}</ThemedText>
+      <ThemedText style={[styles.label, { color: textColor }]}>{label}</ThemedText>
     </View>
   );
 }
@@ -27,7 +29,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radius.pill,
-    backgroundColor: 'rgba(127,127,127,0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
     alignSelf: 'flex-start',
   },
   dot: {
@@ -38,8 +40,5 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '700',
-  },
-  onDark: {
-    color: '#FFFFFF',
   },
 });

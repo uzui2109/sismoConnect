@@ -1,10 +1,22 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { Platform, StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 
 import { Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+export type ThemedTextType =
+  | 'default'
+  | 'title'
+  | 'small'
+  | 'smallBold'
+  | 'subtitle'
+  | 'link'
+  | 'linkPrimary'
+  | 'code'
+  | 'display'
+  | 'headline';
+
 export type ThemedTextProps = TextProps & {
-  type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
+  type?: ThemedTextType;
   themeColor?: ThemeColor;
   /** Force white text, e.g. on top of a colour-filled magnitude tile. */
   onDarkBackground?: boolean;
@@ -19,18 +31,14 @@ export function ThemedText({
 }: ThemedTextProps) {
   const theme = useTheme();
 
+  const typeStyle = TYPE_STYLES[type];
+
   return (
     <Text
       style={[
-        { color: onDarkBackground ? '#FFFFFF' : theme[themeColor ?? 'text'] },
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
-        type === 'code' && styles.code,
+        styles.base,
+        onDarkBackground ? { color: '#FFFFFF' } : { color: theme[themeColor ?? 'text'] },
+        typeStyle,
         style,
       ]}
       {...rest}
@@ -39,39 +47,51 @@ export function ThemedText({
 }
 
 const styles = StyleSheet.create({
+  base: {},
+  display: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '800',
+  },
+  headline: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700',
+  },
+  title: {
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '700',
+  },
+  subtitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
+  },
+  body: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '500',
+  },
   small: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: 500,
+    fontWeight: '500',
   },
   smallBold: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: 700,
-  },
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
-  },
-  subtitle: {
-    fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
+    fontWeight: '700',
   },
   link: {
-    lineHeight: 30,
     fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   linkPrimary: {
-    lineHeight: 30,
     fontSize: 14,
-    color: '#3c87f7',
+    lineHeight: 20,
+    fontWeight: '700',
   },
   code: {
     fontFamily: Fonts.mono,
@@ -79,3 +99,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+
+const TYPE_STYLES: Record<ThemedTextType, TextStyle> = {
+  default: styles.body,
+  title: styles.title,
+  subtitle: styles.subtitle,
+  small: styles.small,
+  smallBold: styles.smallBold,
+  display: styles.display,
+  headline: styles.headline,
+  link: styles.link,
+  linkPrimary: styles.linkPrimary,
+  code: styles.code,
+};

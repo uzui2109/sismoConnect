@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Radius, Spacing , QuakeScale, quakeColor, quakeLevel } from '@/constants/theme';
+import { Radius, Spacing, QuakeScale, quakeColor, quakeLevel } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
 import { useIsDark, useTheme } from '@/hooks/use-theme';
 import { ThemedText } from '@/components/themed-text';

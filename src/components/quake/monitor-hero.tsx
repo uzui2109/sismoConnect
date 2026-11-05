@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
 import { Radius, Spacing } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
@@ -22,10 +24,13 @@ export function MonitorHero({
 }: Props) {
   return (
     <LinearGradient
-      colors={['#07182D', '#0B4F8A', '#0E7490']}
+      colors={['#051527', '#0B3D66', '#0E7490']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}>
+      <View style={styles.glowA} />
+      <View style={styles.glowB} />
+
       <View style={styles.topRow}>
         <View style={styles.heading}>
           <ThemedText style={styles.eyebrow} onDarkBackground>
@@ -38,12 +43,7 @@ export function MonitorHero({
             {updatedLabel}
           </ThemedText>
         </View>
-        <View style={styles.live}>
-          <View style={styles.liveDot} />
-          <ThemedText style={styles.liveLabel} onDarkBackground>
-            EN VIVO
-          </ThemedText>
-        </View>
+        <LiveBadge />
       </View>
 
       <View style={styles.stats}>
@@ -74,6 +74,35 @@ export function MonitorHero({
   );
 }
 
+function LiveBadge() {
+  const opacity = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  useEffect(() => {
+    let frame = 0;
+    let start: number | null = null;
+    const tick = (timestamp: number) => {
+      if (start === null) start = timestamp;
+      const progress = (timestamp - start) % 1400;
+      opacity.value = 1 - (progress / 1400) * 0.6;
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [opacity]);
+
+  return (
+    <View style={styles.live}>
+      <Animated.View style={animatedStyle}>
+        <View style={styles.liveDot} />
+      </Animated.View>
+      <ThemedText style={styles.liveLabel} onDarkBackground>
+        EN VIVO
+      </ThemedText>
+    </View>
+  );
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.stat}>
@@ -93,6 +122,24 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.four,
     overflow: 'hidden',
+  },
+  glowA: {
+    position: 'absolute',
+    top: -40,
+    right: -30,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(94, 234, 212, 0.14)',
+  },
+  glowB: {
+    position: 'absolute',
+    bottom: -60,
+    left: -20,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
   },
   topRow: {
     flexDirection: 'row',

@@ -126,7 +126,7 @@ export default function ChatScreen() {
     if (!chat?.inviteCode) return;
     haptics.tap();
     void Share.share({
-      message: `Únete a mi grupo «${chat.title}» en SismoConnect con el código ${chat.inviteCode}.`,
+      message: `Únete a mi grupo “${chat.title}” en SismoConnect con el código ${chat.inviteCode}.`,
     });
   }
 
@@ -169,7 +169,7 @@ export default function ChatScreen() {
   function confirmEmergency() {
     Alert.alert(
       'Enviar alerta de emergencia',
-      'Se enviará un mensaje marcado como emergencia. Úsalo solo si necesitas ayuda real. El servidor limita una alerta cada 10 minutos.',
+      'Se enviará un mensaje marcado como emergencia. Sólo úsalo si necesitas ayuda real. El servidor limita una alerta cada 10 minutos.',
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Enviar', style: 'destructive', onPress: () => void onSend(true) },
@@ -187,7 +187,7 @@ export default function ChatScreen() {
       } else {
         Alert.alert(
           'Sin recompensa todavía',
-          'El anuncio se cerró o el servidor aún está validando la recompensa. Intenta actualizar en unos segundos.'
+          'El anuncio se cerró o el servidor aún no está validando la recompensa. Intenta actualizar en unos segundos.'
         );
       }
     } catch (adError) {
@@ -227,7 +227,7 @@ export default function ChatScreen() {
           accessibilityLabel="Volver"
           onPress={() => goBack()}
           style={styles.back}>
-          <ThemedText type="smallBold">‹</ThemedText>
+          <ThemedText type="smallBold">←</ThemedText>
         </Pressable>
         <View style={styles.headerText}>
           <ThemedText style={styles.title} numberOfLines={1}>
@@ -288,16 +288,17 @@ export default function ChatScreen() {
                 accessibilityLabel={own ? 'Tu mensaje' : `Mensaje de ${senderName}`}
                 onLongPress={() => confirmReport(item)}
                 delayLongPress={450}
-                style={[
+                style={({ pressed }) => [
                   styles.bubble,
                   {
                     backgroundColor: item.emergency
-                      ? theme.error
+                      ? theme.danger
                       : own
                         ? theme.primary
                         : theme.surfaceContainer,
                     borderColor: theme.outlineVariant,
                   },
+                  pressed ? styles.bubblePressed : null,
                 ]}>
                 {chat.type === 'group' && !own ? (
                   <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
@@ -305,14 +306,14 @@ export default function ChatScreen() {
                   </ThemedText>
                 ) : null}
                 {item.emergency ? (
-                  <ThemedText type="smallBold" style={{ color: theme.onError }}>
+                  <ThemedText type="smallBold" style={{ color: theme.onDanger }}>
                     EMERGENCIA
                   </ThemedText>
                 ) : null}
                 <ThemedText
                   style={{
                     color: item.emergency
-                      ? theme.onError
+                      ? theme.onDanger
                       : own
                         ? theme.onPrimary
                         : theme.text,
@@ -323,7 +324,7 @@ export default function ChatScreen() {
                   type="small"
                   style={{
                     color: item.emergency
-                      ? theme.onError
+                      ? theme.onDanger
                       : own
                         ? theme.onPrimary
                         : theme.textSecondary,
@@ -394,11 +395,11 @@ export default function ChatScreen() {
           style={[
             styles.emergencyButton,
             {
-              borderColor: theme.error,
+              borderColor: theme.danger,
               opacity: sending || emergencyLeft > 0 ? 0.4 : 1,
             },
           ]}>
-          <ThemedText type="smallBold" style={{ color: theme.error }}>
+          <ThemedText type="smallBold" style={{ color: theme.danger }}>
             !
           </ThemedText>
         </Pressable>
@@ -438,15 +439,11 @@ export default function ChatScreen() {
               <ThemedText type="smallBold" themeColor="textSecondary">
                 Miembros
               </ThemedText>
-              <ThemedText type="small">
-                {chat?.memberIds.length ?? 0}
-              </ThemedText>
+              <ThemedText type="small">{chat?.memberIds.length ?? 0}</ThemedText>
               <ThemedText type="smallBold" themeColor="textSecondary">
                 Tipo
               </ThemedText>
-              <ThemedText type="small">
-                {chat?.type === 'group' ? 'Grupo' : 'Privado'}
-              </ThemedText>
+              <ThemedText type="small">{chat?.type === 'group' ? 'Grupo' : 'Privado'}</ThemedText>
             </View>
             {chat?.type === 'group' && chat?.inviteCode ? (
               <View style={styles.modalSection}>
@@ -474,12 +471,7 @@ export default function ChatScreen() {
                 />
               </View>
             ) : null}
-            <Button
-              label="Cerrar"
-              variant="text"
-              fullWidth={false}
-              onPress={() => setMenuOpen(false)}
-            />
+            <Button label="Cerrar" variant="text" fullWidth={false} onPress={() => setMenuOpen(false)} />
           </View>
         </View>
       </Modal>
@@ -549,6 +541,9 @@ const styles = StyleSheet.create({
     gap: 2,
     flexShrink: 1,
   },
+  bubblePressed: {
+    opacity: 0.85,
+  },
   error: {
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.two,
@@ -614,6 +609,6 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingVertical: Spacing.one,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#CCCCCC',
+    borderBottomColor: 'rgba(127,127,127,0.24)',
   },
 });

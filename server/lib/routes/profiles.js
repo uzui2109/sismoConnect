@@ -1,11 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const public_error_1 = require("../lib/public-error");
 const firebase_admin_1 = require("../lib/firebase-admin");
 const auth_1 = require("../middleware/auth");
+const firestore_1 = require("firebase-admin/firestore");
 const router = (0, express_1.Router)();
-const MAX_DISPLAY_NAME = 40;
-const MAX_BIO = 160;
+const MAX_DISPLAY_NAME = 60;
+const MAX_BIO = 280;
+const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
+const RESERVED_USERNAMES = new Set([
+    'admin',
+    'administrator',
+    'soporte',
+    'support',
+    'sismoconnect',
+    'system',
+    'sistema',
+    'moderator',
+    'moderador',
+    'root',
+    'firebase',
+    'usgs',
+]);
 function cleanString(value, max) {
     if (typeof value !== 'string')
         return '';
@@ -17,11 +34,10 @@ router.post('/bootstrap', auth_1.requireAuth, async (req, res) => {
         const now = Date.now();
         const userRef = (0, firebase_admin_1.db)().doc(`users/${uid}`);
         const publicRef = (0, firebase_admin_1.db)().doc(`publicProfiles/${uid}`);
-        const token = {};
-        const displayName = typeof token.name === 'string' && token.name.trim()
-            ? token.name.trim().slice(0, MAX_DISPLAY_NAME)
+        const displayName = req.user?.name?.trim()
+            ? req.user.name.trim().slice(0, MAX_DISPLAY_NAME)
             : 'Explorador sísmico';
-        const photoURL = typeof token.picture === 'string' && token.picture.trim() ? token.picture.trim() : null;
+        const photoURL = req.user?.picture?.trim() || null;
         await (0, firebase_admin_1.db)().runTransaction(async (tx) => {
             const [userSnap, publicSnap] = await Promise.all([tx.get(userRef), tx.get(publicRef)]);
             if (!userSnap.exists) {
@@ -94,7 +110,7 @@ router.post('/bootstrap', auth_1.requireAuth, async (req, res) => {
     }
     catch (e) {
         console.error('BOOTSTRAP_FATAL', e);
-        res.status(500).json({ message: e?.message || 'Error interno al inicializar el perfil' });
+        res.status(500).json({ message: (0, public_error_1.publicErrorMessage)(e, 'Error interno al inicializar el perfil') });
     }
 });
 router.post('/updateProfile', auth_1.requireAuth, async (req, res) => {
@@ -176,7 +192,130 @@ router.post('/updateProfile', auth_1.requireAuth, async (req, res) => {
         res.json(result);
     }
     catch (e) {
-        res.status(400).json({ message: e?.message || 'Error al actualizar perfil' });
+        res.status(400).json({ message: (0, public_error_1.publicErrorMessage)(e, 'Error al actualizar perfil') });
+    }
+});
+router.post('/claimUsername', auth_1.requireAuth, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const { username } = req.body || {};
+        const normalized = typeof username === 'string' ? username.trim().toLowerCase() : '';
+        if (!USERNAME_REGEX.test(normalized)) {
+            return res.status(400).json({
+                message: 'El usuario debe tener entre 3 y 20 caracteres: letras minúsculas, números o guion bajo.',
+            });
+        }
+        if (RESERVED_USERNAMES.has(normalized)) {
+            return res.status(409).json({ message: 'Ese nombre de usuario está reservado.' });
+        }
+        await (0, firebase_admin_1.db)().runTransaction(async (tx) => {
+            const userRef = (0, firebase_admin_1.db)().doc(`users/${uid}`);
+            const publicRef = (0, firebase_admin_1.db)().doc(`publicProfiles/${uid}`);
+            const usernameRef = (0, firebase_admin_1.db)().doc(`usernames/${normalized}`);
+            const [userSnap, publicSnap, usernameSnap] = await Promise.all([
+                tx.get(userRef),
+                tx.get(publicRef),
+                tx.get(usernameRef),
+            ]);
+            if (!userSnap.exists) {
+                throw new Error('Usuario no encontrado.');
+            }
+            if (usernameSnap.exists) {
+                const existingUid = usernameSnap.get('uid');
+                if (existingUid && existingUid !== uid) {
+                    throw new Error('Ese nombre de usuario ya está en uso.');
+                }
+            }
+            const previousUsername = userSnap.get('username');
+            if (previousUsername && previousUsername !== normalized) {
+                const prevRef = (0, firebase_admin_1.db)().doc(`usernames/${previousUsername}`);
+                const prevSnap = await tx.get(prevRef);
+                if (prevSnap.exists && prevSnap.get('uid') === uid) {
+                    tx.delete(prevRef);
+                }
+            }
+            tx.set(usernameRef, { uid, username: normalized, createdAt: Date.now() });
+            tx.set(userRef, { username: normalized, updatedAt: Date.now() }, { merge: true });
+            if (publicSnap.exists) {
+                tx.set(publicRef, { username: normalized, updatedAt: Date.now() }, { merge: true });
+            }
+        });
+        res.json({ username: normalized });
+    }
+    catch (e) {
+        const message = (0, public_error_1.publicErrorMessage)(e, 'Error al reclamar nombre de usuario');
+        if (/ya está en uso|reservado/.test(message)) {
+            return res.status(409).json({ message });
+        }
+        if (/Usuario no encontrado|debe tener/.test(message)) {
+            return res.status(400).json({ message });
+        }
+        res.status(400).json({ message });
+    }
+});
+const NOTIFICATION_KEYS = ['earthquakes', 'social', 'messages', 'friends', 'groups'];
+function normalizeUsernameValue(value) {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+function prefsFrom(value) {
+    const data = (value && typeof value === 'object' ? value : {});
+    return {
+        earthquakes: data.earthquakes !== false,
+        social: data.social !== false,
+        messages: data.messages !== false,
+        friends: data.friends !== false,
+        groups: data.groups !== false,
+    };
+}
+function partialPrefs(value) {
+    const data = (value && typeof value === 'object' ? value : {});
+    const next = {};
+    for (const key of NOTIFICATION_KEYS) {
+        if (typeof data[key] === 'boolean')
+            next[key] = data[key];
+    }
+    return next;
+}
+router.post('/deleteUsername', auth_1.requireAuth, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const userRef = (0, firebase_admin_1.db)().doc(`users/${uid}`);
+        const result = await (0, firebase_admin_1.db)().runTransaction(async (tx) => {
+            const userSnap = await tx.get(userRef);
+            if (!userSnap.exists)
+                return { username: null };
+            const username = normalizeUsernameValue(userSnap.get('username'));
+            if (username)
+                tx.delete((0, firebase_admin_1.db)().doc(`usernames/${username}`));
+            const now = Date.now();
+            tx.set(userRef, { username: null, updatedAt: now }, { merge: true });
+            tx.set((0, firebase_admin_1.db)().doc(`publicProfiles/${uid}`), { username: null, updatedAt: now, removedAt: firestore_1.FieldValue.delete() }, { merge: true });
+            return { username: null };
+        });
+        res.json(result);
+    }
+    catch (e) {
+        res.status(400).json({ message: (0, public_error_1.publicErrorMessage)(e, 'Error al eliminar nombre de usuario') });
+    }
+});
+router.post('/updateNotificationPrefs', auth_1.requireAuth, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const userRef = (0, firebase_admin_1.db)().doc(`users/${uid}`);
+        const now = Date.now();
+        const result = await (0, firebase_admin_1.db)().runTransaction(async (tx) => {
+            const userSnap = await tx.get(userRef);
+            if (!userSnap.exists) {
+                throw new Error('Completa tu perfil antes de editar las notificaciones.');
+            }
+            const next = { ...prefsFrom(userSnap.get('notificationPrefs')), ...partialPrefs(req.body) };
+            tx.set(userRef, { notificationPrefs: next, updatedAt: now }, { merge: true });
+            return next;
+        });
+        res.json(result);
+    }
+    catch (e) {
+        res.status(400).json({ message: (0, public_error_1.publicErrorMessage)(e, 'Error al actualizar notificaciones') });
     }
 });
 exports.default = router;

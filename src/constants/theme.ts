@@ -1,49 +1,52 @@
 /**
  * Design tokens for sismoConnect.
  *
- * Android-first: the palette follows Material Design 3 (light + dark) and the
- * `Quake` scale maps a seismic magnitude to a colour that stays legible in both
- * schemes and passes contrast on top of `surface`.
+ * Identity: night-blue operational UI. The palette follows Material Design 3
+ * (light + dark) with an electric-blue interaction layer, and the `Quake` scale
+ * maps a seismic magnitude to a colour that stays legible in both schemes and
+ * passes contrast on top of `surface`.
  */
 
 import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#0B1B33',
-    textSecondary: '#52627A',
-    background: '#F7F9FC',
+    text: '#0A1B2E',
+    textSecondary: '#55687F',
+    background: '#F5F8FC',
     surface: '#FFFFFF',
-    surfaceContainer: '#EEF3FA',
+    surfaceContainer: '#EDF2F9',
     backgroundElement: '#E7EEF8',
-    backgroundSelected: '#D8E5F5',
-    outline: '#7A8AA3',
-    outlineVariant: '#CDD8E8',
+    backgroundSelected: '#D5E4F5',
+    outline: '#6E819C',
+    outlineVariant: '#CBDAF0',
     primary: '#0B4F8A',
     onPrimary: '#FFFFFF',
-    primaryContainer: '#D6E8FA',
-    onPrimaryContainer: '#062B4D',
+    primaryContainer: '#D9E9F8',
+    onPrimaryContainer: '#072F52',
     secondary: '#B45309',
     onSecondary: '#FFFFFF',
     secondaryContainer: '#FFF1D6',
     onSecondaryContainer: '#4A2C00',
-    error: '#B3261E',
-    onError: '#FFFFFF',
-    success: '#256B3A',
+    success: '#1E6B3C',
     warning: '#9A5B00',
     info: '#0B6E99',
-    scrim: 'rgba(3,12,25,0.55)',
+    danger: '#C62828',
+    onDanger: '#FFFFFF',
+    error: '#B3261E',
+    onError: '#FFFFFF',
+    scrim: 'rgba(4, 16, 32, 0.55)',
   },
   dark: {
-    text: '#E8EEF8',
-    textSecondary: '#A9B8CE',
-    background: '#07101F',
-    surface: '#0F1B2E',
-    surfaceContainer: '#16243A',
-    backgroundElement: '#1D2D45',
-    backgroundSelected: '#263B58',
+    text: '#E9EFF8',
+    textSecondary: '#A7B8CF',
+    background: '#050D1A',
+    surface: '#0D1828',
+    surfaceContainer: '#15223C',
+    backgroundElement: '#1B2A44',
+    backgroundSelected: '#27405F',
     outline: '#8496AE',
-    outlineVariant: '#3A4B63',
+    outlineVariant: '#374B66',
     primary: '#8FC4F5',
     onPrimary: '#00315C',
     primaryContainer: '#0A3E6B',
@@ -52,21 +55,31 @@ export const Colors = {
     onSecondary: '#3D2A00',
     secondaryContainer: '#5B3D00',
     onSecondaryContainer: '#FFE2A8',
-    error: '#FFB4AB',
-    onError: '#690005',
     success: '#86D99B',
     warning: '#F7C873',
     info: '#8ED0F0',
-    scrim: 'rgba(0,0,0,0.68)',
+    danger: '#FF8A80',
+    onDanger: '#690005',
+    error: '#FFB4AB',
+    onError: '#690005',
+    scrim: 'rgba(0, 0, 0, 0.68)',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 /**
- * Magnitude → colour. Blues for routine tremors, amber/orange for felt
- * events, red only for damaging ones.
+ * Severity of a seismic alert. Red stays exclusive to the most serious events.
  */
+export const QuakeAlert = {
+  info: { color: '#2F6FA8', label: 'Sin alerta' },
+  warning: { color: '#B8860B', label: 'Alerta amarilla' },
+  severe: { color: '#C2600F', label: 'Alerta naranja' },
+  danger: { color: '#B3261E', label: 'Alerta roja' },
+} as const;
+
+export type QuakeAlertLevel = keyof typeof QuakeAlert;
+
 export const QuakeScale = {
   low: { color: '#2E6F9E', label: 'Menor' },
   light: { color: '#1F5C8C', label: 'Ligero' },

@@ -10,7 +10,12 @@ async function requireAuth(req, res, next) {
             return res.status(401).json({ message: 'No autenticado' });
         }
         const decoded = await (0, firebase_admin_1.auth)().verifyIdToken(token);
-        req.user = { uid: decoded.uid, email: decoded.email };
+        req.user = {
+            uid: decoded.uid,
+            email: decoded.email,
+            name: typeof decoded.name === 'string' ? decoded.name : undefined,
+            picture: typeof decoded.picture === 'string' ? decoded.picture : undefined,
+        };
         next();
     }
     catch (e) {

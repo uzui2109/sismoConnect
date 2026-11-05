@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth * 2,
     paddingHorizontal: Spacing.three,
     justifyContent: 'center',
     minHeight: 56,

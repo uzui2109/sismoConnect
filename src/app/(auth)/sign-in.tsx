@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { configurationMessage } from '@/constants/config';
+import { configurationMessage, googleClientId } from '@/constants/config';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/providers/auth-provider';
 import { haptics } from '@/lib/haptics';
@@ -103,7 +103,7 @@ export default function SignInScreen() {
 
       <Button label="Iniciar sesión" onPress={onSubmit} loading={busy} disabled={!isConfigured} />
 
-      {isConfigured ? (
+      {isConfigured && googleClientId ? (
         <>
           <View style={styles.separator}>
             <View style={styles.rule} />

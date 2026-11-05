@@ -1,15 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { goBack } from '@/utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +17,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { TextField } from '@/components/ui/text-field';
 import { ThemedText } from '@/components/themed-text';
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
@@ -277,14 +268,7 @@ export default function EditProfileScreen() {
           maxLength={60}
           placeholder="Tu nombre"
           placeholderTextColor={theme.textSecondary}
-          style={[
-            styles.input,
-            {
-              color: theme.text,
-              backgroundColor: theme.surface,
-              borderColor: theme.outlineVariant,
-            },
-          ]}
+          style={[styles.input, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.outlineVariant }]}
         />
       </View>
 
@@ -300,15 +284,7 @@ export default function EditProfileScreen() {
             autoCorrect={false}
             placeholder="ejemplo_123"
             placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.input,
-              styles.usernameInput,
-              {
-                color: theme.text,
-                backgroundColor: theme.surface,
-                borderColor: theme.outlineVariant,
-              },
-            ]}
+            style={[styles.input, styles.usernameInput, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.outlineVariant }]}
           />
           <Button
             label={username ? 'Cambiar' : 'Reservar'}
@@ -334,15 +310,7 @@ export default function EditProfileScreen() {
           multiline
           placeholder="Cuéntanos qué te interesa de los sismos…"
           placeholderTextColor={theme.textSecondary}
-          style={[
-            styles.input,
-            styles.bio,
-            {
-              color: theme.text,
-              backgroundColor: theme.surface,
-              borderColor: theme.outlineVariant,
-            },
-          ]}
+          style={[styles.input, styles.bio, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.outlineVariant }]}
         />
         <ThemedText type="small" themeColor="textSecondary" style={styles.counter}>
           {bio.length}/280
@@ -358,10 +326,7 @@ export default function EditProfileScreen() {
             haptics.tap();
             setCountryOpen(true);
           }}
-          style={[
-            styles.select,
-            { backgroundColor: theme.surface, borderColor: theme.outlineVariant },
-          ]}>
+          style={[styles.select, { backgroundColor: theme.surface, borderColor: theme.outlineVariant }]}>
           <ThemedText>{selectedCountry?.name ?? 'Sin país'}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             Cambiar
@@ -402,20 +367,12 @@ export default function EditProfileScreen() {
             <ThemedText type="subtitle" style={styles.modalTitle}>
               Elegir país
             </ThemedText>
-            <TextInput
-              accessibilityLabel="Buscar país"
+            <TextField
+              label="Buscar país"
               value={countrySearch}
               onChangeText={setCountrySearch}
               placeholder="Buscar país…"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.input,
-                {
-                  color: theme.text,
-                  backgroundColor: theme.surface,
-                  borderColor: theme.outlineVariant,
-                },
-              ]}
+              style={styles.countryInput}
             />
             <Pressable
               accessibilityRole="button"
@@ -444,11 +401,10 @@ export default function EditProfileScreen() {
                   }}
                   style={[
                     styles.countryRow,
-                    {
-                      borderColor: theme.outlineVariant,
-                      backgroundColor:
-                        countryCode === item.code ? theme.backgroundSelected : 'transparent',
-                    },
+                    { borderColor: theme.outlineVariant },
+                  countryCode === item.code
+                      ? { backgroundColor: theme.backgroundSelected }
+                      : null,
                   ]}>
                   <ThemedText>{item.name}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
@@ -587,6 +543,9 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     lineHeight: 30,
+  },
+  countryInput: {
+    minHeight: 48,
   },
   countryList: {
     flexGrow: 0,

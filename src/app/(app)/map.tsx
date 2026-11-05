@@ -57,6 +57,7 @@ export default function MapScreen() {
       ),
     [filtered]
   );
+  const featured = selected ?? strongest;
 
   return (
     <ScrollView
@@ -78,14 +79,37 @@ export default function MapScreen() {
         </ThemedText>
       </View>
 
-      <View style={styles.chips}>
-        {WINDOWS.map((item) => (
-          <Chip
-            key={item.key}
-            label={item.label}
-            selected={window === item.key}
-            onPress={() => setWindow(item.key)}
-          />
+      <View style={styles.mapWrap}>
+        {loading ? (
+          <Skeleton height={280} radius={Radius.lg} />
+        ) : (
+          <QuakeMap quakes={filtered} selectedId={selected?.id} onSelect={setSelected} />
+        )}
+        <View style={styles.floatingCluster}>
+          <View style={[styles.floatingCard, { backgroundColor: theme.surface }]}>
+            <ThemedText type="smallBold" style={styles.floatingLabel}>
+              Ventana
+            </ThemedText>
+            {WINDOWS.map((item) => (
+              <Chip
+                key={item.key}
+                label={item.label}
+                selected={window === item.key}
+                onPress={() => setWindow(item.key)}
+              />
+            ))}
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.legend}>
+        {Object.entries(QuakeScale).map(([key, entry]) => (
+          <View key={key} style={styles.legendItem}>
+            <View style={[styles.swatch, { backgroundColor: entry.color }]} />
+            <ThemedText type="small" themeColor="textSecondary">
+              {entry.label}
+            </ThemedText>
+          </View>
         ))}
       </View>
 
@@ -95,40 +119,23 @@ export default function MapScreen() {
         <ErrorState message={error} onRetry={() => void refetch()} />
       ) : (
         <>
-          <View style={styles.mapWrap}>
-            {loading ? (
-              <Skeleton height={280} radius={Radius.lg} />
-            ) : (
-              <QuakeMap quakes={filtered} selectedId={selected?.id} onSelect={setSelected} />
-            )}
-          </View>
-
-          <View style={styles.legend}>
-            {Object.entries(QuakeScale).map(([key, entry]) => (
-              <View key={key} style={styles.legendItem}>
-                <View style={[styles.swatch, { backgroundColor: entry.color }]} />
-                <ThemedText type="small" themeColor="textSecondary">
-                  {entry.label}
-                </ThemedText>
-              </View>
-            ))}
-          </View>
-
-          {strongest?.magnitude != null && (
-            <Card variant="raised">
+          {featured ? (
+            <Card variant="raised" style={styles.strongestCard}>
               <View style={styles.strongestHeader}>
-                <ThemedText type="smallBold">Sismo más fuerte del periodo</ThemedText>
+                <ThemedText type="smallBold">
+                  {selected ? 'Sismo seleccionado en el mapa' : 'Sismo más fuerte del periodo'}
+                </ThemedText>
                 <Badge
-                  label={formatMagnitude(strongest.magnitude)}
-                  color={quakeColor(strongest.magnitude, isDark)}
+                  label={formatMagnitude(featured.magnitude)}
+                  color={quakeColor(featured.magnitude, isDark)}
                 />
               </View>
-              <ThemedText>{shortenPlace(strongest.place)}</ThemedText>
+              <ThemedText>{shortenPlace(featured.place)}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                {timeAgo(strongest.time)} · {strongest.depthKm.toFixed(1)} km de profundidad
+                {timeAgo(featured.time)} · {featured.depthKm.toFixed(1)} km de profundidad
               </ThemedText>
             </Card>
-          )}
+          ) : null}
 
           <View style={styles.section}>
             <ThemedText type="subtitle">Zonas más activas</ThemedText>
@@ -151,7 +158,9 @@ export default function MapScreen() {
                 <ThemedText type="small" themeColor="textSecondary">
                   Máx. {formatMagnitude(region.maxMagnitude)}
                 </ThemedText>
-                <View style={[styles.swatch, { backgroundColor: quakeColor(region.maxMagnitude, isDark) }]} />
+                <View
+                  style={[styles.swatch, { backgroundColor: quakeColor(region.maxMagnitude, isDark) }]}
+                />
               </View>
             </Card>
           ))}
@@ -184,12 +193,27 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
   },
-  chips: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
   mapWrap: {
-    height: 300,
+    height: 320,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  floatingCluster: {
+    position: 'absolute',
+    top: Spacing.two,
+    left: Spacing.two,
+    alignSelf: 'flex-start',
+  },
+  floatingCard: {
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.two,
+    gap: Spacing.one,
+    maxWidth: '100%',
+  },
+  floatingLabel: {
+    paddingHorizontal: Spacing.one,
   },
   legend: {
     flexDirection: 'row',
@@ -205,6 +229,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
+  },
+  strongestCard: {
+    gap: Spacing.two,
   },
   strongestHeader: {
     flexDirection: 'row',

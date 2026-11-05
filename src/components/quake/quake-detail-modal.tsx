@@ -1,6 +1,6 @@
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Radius, Spacing , quakeColor, quakeLevel, QuakeScale } from '@/constants/theme';
+import { Radius, Spacing, QuakeScale, quakeColor, quakeLevel } from '@/constants/theme';
 import { haptics } from '@/lib/haptics';
 import { useIsDark, useTheme } from '@/hooks/use-theme';
 import { Badge } from '@/components/ui/badge';
@@ -64,7 +64,7 @@ export function QuakeDetailModal({ quake, onClose, onOpenUsgs }: Props) {
               </View>
 
               <View style={styles.headerText}>
-                <ThemedText type="subtitle" style={styles.title}>
+                <ThemedText type="headline" style={styles.title}>
                   {shortenPlace(quake.place)}
                 </ThemedText>
                 <ThemedText themeColor="textSecondary">
@@ -78,40 +78,44 @@ export function QuakeDetailModal({ quake, onClose, onOpenUsgs }: Props) {
                 <Badge label={ALERT_LABELS[quake.alert] ?? quake.alert} color={color} />
               )}
               {quake.tsunami === 1 && <Badge label="Maremoto" color={theme.info} />}
-              {quake.status !== 'reviewed' && <Badge label="Revisión automática" color={theme.warning} />}
+              {quake.status !== 'reviewed' && (
+                <Badge label="Revisión automática" color={theme.warning} />
+              )}
             </View>
 
-            <DetailRow
-              label="Fecha y hora (tu hora local)"
-              value={formatDateTime(quake.time)}
-            />
-            <DetailRow label="Hora UTC" value={formatUtc(quake.time)} />
-            <DetailRow label="Última revisión" value={timeAgo(quake.updated)} />
-            <DetailRow label="Profundidad" value={formatDepth(quake.depthKm)} />
-            <DetailRow
-              label="Coordenadas"
-              value={formatCoordinates(quake.latitude, quake.longitude)}
-            />
-            <DetailRow label="País" value={quake.countryName ?? 'Sin país'} />
-            <DetailRow
-              label="Duración"
-              value={formatDuration(quake.durationSeconds, quake.durationSource)}
-            />
-            {quake.mmi !== null && (
-              <DetailRow label="Intensidad instrumental" value={`MMI ${quake.mmi.toFixed(1)}`} />
-            )}
-            {quake.cdi !== null && (
-              <DetailRow label="Intensidad comunitaria" value={`CDI ${quake.cdi.toFixed(1)}`} />
-            )}
-            {quake.significance !== null && (
-              <DetailRow label="Significancia USGS" value={String(quake.significance)} />
-            )}
-            {quake.network && <DetailRow label="Red sísmica" value={quake.network.toUpperCase()} />}
-            {quake.stationCount !== null && (
-              <DetailRow label="Estaciones" value={String(quake.stationCount)} />
-            )}
-            {formatFelt(quake.felt) && <DetailRow label="Reportes" value={formatFelt(quake.felt)!} />}
-            <DetailRow label="Identificador" value={quake.id} mono />
+            <View style={styles.detailsCard}>
+              <DetailRow
+                label="Fecha y hora (tu hora local)"
+                value={formatDateTime(quake.time)}
+              />
+              <DetailRow label="Hora UTC" value={formatUtc(quake.time)} />
+              <DetailRow label="Última revisión" value={timeAgo(quake.updated)} />
+              <DetailRow label="Profundidad" value={formatDepth(quake.depthKm)} />
+              <DetailRow
+                label="Coordenadas"
+                value={formatCoordinates(quake.latitude, quake.longitude)}
+              />
+              <DetailRow label="País" value={quake.countryName ?? 'Sin país'} />
+              <DetailRow
+                label="Duración"
+                value={formatDuration(quake.durationSeconds, quake.durationSource)}
+              />
+              {quake.mmi !== null && (
+                <DetailRow label="Intensidad instrumental" value={`MMI ${quake.mmi.toFixed(1)}`} />
+              )}
+              {quake.cdi !== null && (
+                <DetailRow label="Intensidad comunitaria" value={`CDI ${quake.cdi.toFixed(1)}`} />
+              )}
+              {quake.significance !== null && (
+                <DetailRow label="Significancia USGS" value={String(quake.significance)} />
+              )}
+              {quake.network && <DetailRow label="Red sísmica" value={quake.network.toUpperCase()} />}
+              {quake.stationCount !== null && (
+                <DetailRow label="Estaciones" value={String(quake.stationCount)} />
+              )}
+              {formatFelt(quake.felt) && <DetailRow label="Reportes" value={formatFelt(quake.felt)!} />}
+              <DetailRow label="Identificador" value={quake.id} mono />
+            </View>
 
             <View style={styles.scale}>
               <ThemedText type="smallBold" themeColor="textSecondary">
@@ -247,6 +251,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+  },
+  detailsCard: {
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(127,127,127,0.24)',
+    backgroundColor: 'rgba(127,127,127,0.08)',
+    padding: Spacing.three,
+    gap: Spacing.one,
   },
   detailRow: {
     gap: 2,

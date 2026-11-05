@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -20,8 +21,17 @@ export function AuthScreen({ title, subtitle, children, footer }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: theme.background }]}
+      style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <LinearGradient
+        colors={['#051527', '#0B3D66', '#0E7490']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}>
+        <View style={styles.glowA} />
+        <View style={styles.glowB} />
+      </LinearGradient>
+
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -34,7 +44,7 @@ export function AuthScreen({ title, subtitle, children, footer }: Props) {
             <ThemedText style={[styles.logoMark, { color: theme.onPrimaryContainer }]}>S</ThemedText>
           </View>
 
-          <ThemedText type="title" style={styles.title}>
+          <ThemedText type="display" style={styles.title}>
             {title}
           </ThemedText>
           {subtitle ? (
@@ -66,6 +76,24 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: Spacing.two,
   },
+  glowA: {
+    position: 'absolute',
+    top: -60,
+    right: -40,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(94, 234, 212, 0.12)',
+  },
+  glowB: {
+    position: 'absolute',
+    bottom: -80,
+    left: -30,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(59, 130, 246, 0.16)',
+  },
   logo: {
     width: 64,
     height: 64,
@@ -79,8 +107,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   title: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '800',
   },
   subtitle: {
     marginBottom: Spacing.three,

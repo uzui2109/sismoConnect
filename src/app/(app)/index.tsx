@@ -89,16 +89,26 @@ export default function MonitorScreen() {
           total={data.length}
           strongestMagnitude={strongest?.magnitude ?? null}
           countries={countryCount}
-          updatedLabel={lastUpdated ? `Actualizado ${timeAgo(lastUpdated)}` : 'Cargando actividad…'}
+          updatedLabel={lastUpdated ? `Actualizado ${timeAgo(lastUpdated)}` : 'Cargando actividad sísmica…'}
           onOpenReports={() => router.push('/reports' as Href)}
         />
 
         {strongest?.magnitude != null && strongest.magnitude >= 5 && (
-          <View style={[styles.alert, { backgroundColor: theme.primaryContainer }]}>
-            <ThemedText type="smallBold" style={{ color: theme.onPrimaryContainer }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sismo de magnitud importante"
+            onPress={() => {
+              haptics.tap();
+              setSelected(strongest);
+            }}
+            style={({ pressed }) => [
+              styles.alert,
+              { backgroundColor: theme.danger, opacity: pressed ? 0.85 : 1 },
+            ]}>
+            <ThemedText type="smallBold" style={{ color: theme.onDanger }}>
               Sismo de {strongest.magnitude.toFixed(1)} detectado
             </ThemedText>
-          </View>
+          </Pressable>
         )}
 
         <Pressable
@@ -123,7 +133,11 @@ export default function MonitorScreen() {
       </View>
 
       <View style={styles.controls}>
-        <View style={[styles.search, { backgroundColor: theme.surface, borderColor: theme.outlineVariant }]}>
+        <View
+          style={[
+            styles.search,
+            { backgroundColor: theme.surface, borderColor: theme.outlineVariant },
+          ]}>
           <TextInput
             accessibilityLabel="Buscar por lugar"
             placeholder="Buscar por lugar…"
@@ -141,9 +155,7 @@ export default function MonitorScreen() {
               key={item.key}
               label={item.label}
               selected={filter === item.key}
-              accent={
-                item.key === 'all' ? undefined : quakeColor(item.threshold - 0.1, isDark)
-              }
+              accent={item.key === 'all' ? undefined : quakeColor(item.threshold - 0.1, isDark)}
               onPress={() => setFilter(item.key)}
             />
           ))}
@@ -197,7 +209,7 @@ export default function MonitorScreen() {
               title="Sin resultados"
               description={
                 search
-                  ? `Ningún sismo coincide con «${search}».`
+                  ? `Ningún sismo coincide con “${search}”.`
                   : selectedCountries.length > 0
                     ? 'No hay sismos en los países seleccionados durante las últimas 24 horas.'
                     : 'No hay sismos que cumplan este filtro en las últimas 24 horas.'
@@ -253,11 +265,6 @@ const styles = StyleSheet.create({
   alert: {
     padding: Spacing.three,
     borderRadius: Radius.md,
-    marginTop: Spacing.two,
-  },
-  quickLinks: {
-    flexDirection: 'row',
-    gap: Spacing.two,
     marginTop: Spacing.two,
   },
   quickLink: {

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import { ResponseType } from 'expo-auth-session';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
@@ -7,9 +6,7 @@ import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { googleClientId } from '@/constants/config';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { haptics } from '@/lib/haptics';
-import { Radius, Spacing } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
-import { ThemedText } from '@/components/themed-text';
 
 type Props = {
   onError?: (message: string) => void;
@@ -64,15 +61,7 @@ export function GoogleSignInButton({ onError }: Props) {
     })();
   }, [response, onError]);
 
-  if (!googleClientId) {
-    return (
-      <View style={styles.notice}>
-        <ThemedText type="small" themeColor="textSecondary" style={styles.center}>
-          Añade EXPO_PUBLIC_GOOGLE_CLIENT_ID a tu .env para activar el acceso con Google.
-        </ThemedText>
-      </View>
-    );
-  }
+  if (!googleClientId) return null;
 
   return (
     <Button
@@ -88,13 +77,3 @@ export function GoogleSignInButton({ onError }: Props) {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  notice: {
-    padding: Spacing.two,
-    borderRadius: Radius.md,
-  },
-  center: {
-    textAlign: 'center',
-  },
-});

@@ -4,9 +4,7 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { googleClientId } from '@/constants/config';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { haptics } from '@/lib/haptics';
-import { Radius } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
-import { ThemedText } from '@/components/themed-text';
 
 type Props = {
   onError?: (message: string) => void;
@@ -19,13 +17,7 @@ type Props = {
 export function GoogleSignInButton({ onError }: Props) {
   const [busy, setBusy] = useState(false);
 
-  if (!googleClientId) {
-    return (
-      <ThemedText type="small" themeColor="textSecondary" style={{ borderRadius: Radius.md }}>
-        Añade EXPO_PUBLIC_GOOGLE_CLIENT_ID a tu .env para activar el acceso con Google.
-      </ThemedText>
-    );
-  }
+  if (!googleClientId) return null;
 
   return (
     <Button

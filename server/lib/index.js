@@ -10,7 +10,10 @@ const profiles_1 = __importDefault(require("./routes/profiles"));
 const social_1 = __importDefault(require("./routes/social"));
 const chats_1 = __importDefault(require("./routes/chats"));
 const emergency_1 = __importDefault(require("./routes/emergency"));
+const situation_1 = __importDefault(require("./routes/situation"));
+const rewards_1 = __importDefault(require("./routes/rewards"));
 const firebase_admin_1 = require("./lib/firebase-admin");
+const public_error_1 = require("./lib/public-error");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 (0, firebase_admin_1.getAdminApp)();
@@ -36,13 +39,15 @@ app.use('/profiles', profiles_1.default);
 app.use('/social', social_1.default);
 app.use('/chats', chats_1.default);
 app.use('/emergencyState', emergency_1.default);
+app.use('/situation', situation_1.default);
+app.use('/rewards', rewards_1.default);
 app.use((_req, res) => {
     res.status(404).json({ message: 'Ruta no encontrada.' });
 });
 app.use((err, _req, res, _next) => {
     console.error('[server] unhandled error:', err);
     res.status(err?.status || 500).json({
-        message: err?.message || 'Error interno del servidor',
+        message: (0, public_error_1.publicErrorMessage)(err, 'Error interno del servidor'),
     });
 });
 const port = Number(process.env.PORT) || 8085;

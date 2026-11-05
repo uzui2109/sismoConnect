@@ -17,14 +17,8 @@ import { TextField } from '@/components/ui/text-field';
 import { ThemedText } from '@/components/themed-text';
 
 const EMERGENCY: { country: string; numbers: { label: string; number: string }[] }[] = [
-  {
-    country: 'México',
-    numbers: [{ label: 'Emergencias', number: '911' }],
-  },
-  {
-    country: 'Colombia',
-    numbers: [{ label: 'Emergencias', number: '123' }],
-  },
+  { country: 'México', numbers: [{ label: 'Emergencias', number: '911' }] },
+  { country: 'Colombia', numbers: [{ label: 'Emergencias', number: '123' }] },
   {
     country: 'Chile',
     numbers: [
@@ -43,10 +37,7 @@ const EMERGENCY: { country: string; numbers: { label: string; number: string }[]
       { label: 'Bomberos', number: '116' },
     ],
   },
-  {
-    country: 'Ecuador',
-    numbers: [{ label: 'Emergencias', number: '911' }],
-  },
+  { country: 'Ecuador', numbers: [{ label: 'Emergencias', number: '911' }] },
 ];
 
 const ALERT_THRESHOLD = 5;
@@ -162,9 +153,11 @@ export default function AlertsScreen() {
           significant.map((quake) => (
             <Card
               key={quake.id}
-              style={[styles.alertCard, { borderColor: quakeColor(quake.magnitude, isDark) }]}>
+              style={[styles.alertCard, { borderLeftColor: quakeColor(quake.magnitude, isDark) }]}>
               <View style={styles.alertHeader}>
-                <ThemedText type="smallBold">{`M ${quake.magnitude?.toFixed(1)}`}</ThemedText>
+                <ThemedText type="smallBold" style={[styles.alertMagnitude, { color: quakeColor(quake.magnitude, isDark) }]}>
+                  {`M ${quake.magnitude?.toFixed(1)}`}
+                </ThemedText>
                 <Badge label={timeAgo(quake.time)} color={quakeColor(quake.magnitude, isDark)} />
               </View>
               <ThemedText>{quake.place}</ThemedText>
@@ -269,7 +262,7 @@ export default function AlertsScreen() {
       <View style={styles.section}>
         <ThemedText type="subtitle">Números de emergencia</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Números oficiales. Toca uno para preparar la llamada; confirma siempre con tu servicio
+          Números oficiales. Toca uno para marcar la llamada; confirma siempre con tu servicio
           local.
         </ThemedText>
 
@@ -285,9 +278,7 @@ export default function AlertsScreen() {
                   <ThemedText type="small" themeColor="textSecondary">
                     {entry.label}
                   </ThemedText>
-                  <ThemedText style={[styles.number, { color: theme.error }]}>
-                    {entry.number}
-                  </ThemedText>
+                  <ThemedText style={[styles.number, { color: theme.danger }]}>{entry.number}</ThemedText>
                 </Card>
               ))}
             </View>
@@ -329,12 +320,16 @@ const styles = StyleSheet.create({
   },
   alertCard: {
     gap: Spacing.one,
-    borderWidth: 2,
+    borderLeftWidth: 4,
   },
   alertHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  alertMagnitude: {
+    fontSize: 18,
+    fontWeight: '800',
   },
   formCard: {
     gap: Spacing.three,

@@ -268,9 +268,7 @@ export default function CommunityScreen() {
           <Chip
             key={item.key}
             label={
-              item.key === 'requests' && incomingCount > 0
-                ? `${item.label} (${incomingCount})`
-                : item.label
+              item.key === 'requests' && incomingCount > 0 ? `${item.label} (${incomingCount})` : item.label
             }
             selected={tab === item.key}
             onPress={() => setTab(item.key)}
@@ -297,7 +295,9 @@ export default function CommunityScreen() {
                 <ThemedText type="small" themeColor="textSecondary">
                   Lugar grande para hablar con toda la comunidad
                 </ThemedText>
-                <ThemedText type="small" style={{ color: globalCanWrite ? theme.success : theme.textSecondary }}>
+                <ThemedText
+                  type="small"
+                  style={{ color: globalCanWrite ? theme.success : theme.textSecondary }}>
                   {globalCanWrite
                     ? 'Disponible para escribir'
                     : `Espera para volver a escribir: ${formatMMSS(globalMsLeft)}`}
@@ -472,7 +472,7 @@ export default function CommunityScreen() {
           </View>
           <Card>
             <ThemedText type="small" themeColor="textSecondary">
-              Crea un grupo para hablar con varias personas o únete con un código de invitación.
+              Crea un grupo para hablar con varias personas o únate con un código de invitación.
             </ThemedText>
           </Card>
         </View>
@@ -575,7 +575,7 @@ export default function CommunityScreen() {
                 value={inviteCode}
                 onChangeText={setInviteCode}
                 autoCapitalize="characters"
-                hint="Pídele el código al creador"
+                hint="Példele el código al creador"
               />
             )}
             {groupErr ? (

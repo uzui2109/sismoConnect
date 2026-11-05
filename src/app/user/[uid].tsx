@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/utils/navigation';
@@ -83,7 +75,7 @@ export default function PublicProfileScreen() {
 
   function confirmRemove() {
     if (!uid) return;
-    Alert.alert('Eliminar amistad', 'Dejarán de poder escribirse en chats directos.', [
+    Alert.alert('Eliminar amistad', 'Dejarás de poder escribirse en chats directos.', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
@@ -100,7 +92,7 @@ export default function PublicProfileScreen() {
 
   function confirmBlock() {
     if (!uid) return;
-    Alert.alert('Bloquear usuario', 'Se eliminará la amistad y no podrá enviarte solicitudes.', [
+    Alert.alert('Bloquear usuario', 'Se eliminará la amistad y no podrás enviarte solicitudes.', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Bloquear',
@@ -137,7 +129,7 @@ export default function PublicProfileScreen() {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <ThemedText type="small" themeColor="textSecondary">
-          Cargando perfil…
+          Cargando perfil...
         </ThemedText>
       </View>
     );
@@ -193,8 +185,8 @@ export default function PublicProfileScreen() {
         <Card>
           <ThemedText type="smallBold">Perfil privado</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Esta persona limita la visibilidad de su perfil. Puedes enviarle una solicitud o
-            reportar el perfil.
+            Esta persona limita la visibilidad de su perfil. Puedes enviarle una solicitud o reportar
+            el perfil.
           </ThemedText>
         </Card>
       ) : (
@@ -256,34 +248,16 @@ export default function PublicProfileScreen() {
         ) : (
           <>
             {isFriend ? (
-              <Button
-                label="Enviar mensaje"
-                loading={chatsState.busy}
-                onPress={() => void onMessage()}
-              />
+              <Button label="Enviar mensaje" loading={chatsState.busy} onPress={() => void onMessage()} />
             ) : isPending ? (
               <Button label="Solicitud enviada" variant="tonal" disabled />
             ) : (
-              <Button
-                label="Agregar amistad"
-                loading={friendsState.busy}
-                onPress={() => void onAdd()}
-              />
+              <Button label="Agregar amistad" loading={friendsState.busy} onPress={() => void onAdd()} />
             )}
             {isFriend ? (
-              <Button
-                label="Eliminar amistad"
-                variant="outlined"
-                disabled={friendsState.busy}
-                onPress={confirmRemove}
-              />
+              <Button label="Eliminar amistad" variant="outlined" disabled={friendsState.busy} onPress={confirmRemove} />
             ) : null}
-            <Button
-              label="Bloquear"
-              variant="text"
-              disabled={friendsState.busy}
-              onPress={confirmBlock}
-            />
+            <Button label="Bloquear" variant="text" disabled={friendsState.busy} onPress={confirmBlock} />
             <Button label="Reportar" variant="text" onPress={() => setReportOpen(true)} />
           </>
         )}

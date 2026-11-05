@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -135,7 +136,6 @@ export default function ProfileScreen() {
   async function onSignOut() {
     setSigningOut(true);
     try {
-      // The root guard returns the user to the login screen automatically.
       await signOut();
       clear();
     } finally {
@@ -154,11 +154,17 @@ export default function ProfileScreen() {
           maxWidth: MaxContentWidth,
         },
       ]}>
+      <View style={styles.cover}>
+        {social.profile?.coverURL ? (
+          <Image source={{ uri: social.profile.coverURL }} style={styles.coverImage} contentFit="cover" />
+        ) : null}
+      </View>
+
       <View style={styles.header}>
         <Avatar
           uri={social.profile?.photoURL}
           name={social.profile?.displayName ?? user?.displayName ?? user?.email ?? '?'}
-          size={72}
+          size={88}
         />
         <View style={styles.headerText}>
           <ThemedText type="title" style={styles.title} numberOfLines={1}>
@@ -171,32 +177,28 @@ export default function ProfileScreen() {
                 ? `@${social.profile.username}`
                 : (user?.email ?? '')}
           </ThemedText>
+          {social.profile?.bio ? (
+            <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
+              {social.profile.bio}
+            </ThemedText>
+          ) : null}
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {getCountryByCode(social.profile?.countryCode ?? null)?.name ?? 'Sin país'}
+          </ThemedText>
         </View>
       </View>
 
       {!isAnonymous && social.enabled ? (
         <Card>
           <ThemedText type="smallBold">Perfil social</ThemedText>
-          {social.loading ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              Cargando tu perfil…
-            </ThemedText>
-          ) : social.profile ? (
-            <>
-              <ThemedText type="small" themeColor="textSecondary">
-                {social.profile.bio || 'Añade una descripción para que te conozcan en la comunidad.'}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {getCountryByCode(social.profile.countryCode)?.name ?? 'Sin país'} ·{' '}
-                {social.profile.isPublic ? 'Perfil público' : 'Perfil privado'}
-                {social.profile.unlocks > 0 ? ' · 1 envío extra disponible' : ''}
-              </ThemedText>
-            </>
-          ) : (
-            <ThemedText type="small" style={{ color: theme.error }}>
-              {social.error ?? 'Perfil social no disponible.'}
-            </ThemedText>
-          )}
+          <ThemedText type="small" themeColor="textSecondary">
+            {social.profile?.bio || 'Añade una descripción para que te conozcan en la comunidad.'}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {getCountryByCode(social.profile?.countryCode ?? null)?.name ?? 'Sin país'} ·{' '}
+            {social.profile?.isPublic ? 'Perfil público' : 'Perfil privado'}
+            {social.profile?.unlocks ? ' · 1 envío extra disponible' : ''}
+          </ThemedText>
           <View style={styles.socialActions}>
             <Button
               label="Editar perfil"
@@ -215,27 +217,27 @@ export default function ProfileScreen() {
         </Card>
       ) : null}
 
-      {!isAnonymous && social.enabled && social.profile ? (
+      {!isAnonymous && social.enabled ? (
         <Card>
           <ThemedText type="smallBold">Avisos en este dispositivo</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {Platform.OS === 'web'
               ? 'Los avisos push están disponibles en la app Android. En web puedes consultar el historial dentro de la app.'
-              : social.profile.notificationsEnabled
+              : social.profile?.notificationsEnabled
                 ? 'Sismos según tus alertas, mensajes, amistades y grupos.'
                 : 'Activa los avisos para recibir sismos y actividad social incluso con la app cerrada.'}
           </ThemedText>
           {Platform.OS !== 'web' ? (
             <Button
-              label={social.profile.notificationsEnabled ? 'Desactivar avisos' : 'Activar avisos'}
-              variant={social.profile.notificationsEnabled ? 'text' : 'tonal'}
+              label={social.profile?.notificationsEnabled ? 'Desactivar avisos' : 'Activar avisos'}
+              variant={social.profile?.notificationsEnabled ? 'text' : 'tonal'}
               fullWidth={false}
               loading={pushBusy}
               onPress={() => void onTogglePush()}
             />
           ) : null}
 
-          {social.profile.notificationsEnabled ? (
+          {social.profile?.notificationsEnabled ? (
             <View style={styles.prefs}>
               {PREF_OPTIONS.map((option) => (
                 <View key={option.key} style={styles.prefRow}>
@@ -293,15 +295,15 @@ export default function ProfileScreen() {
         </Card>
       ) : null}
 
-      {needsVerification && (
+      {needsVerification ? (
         <Card style={[styles.notice, { borderColor: theme.warning }]}>
           <ThemedText type="smallBold">Verifica tu correo</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             Confirma tu dirección para no perder el acceso a tu cuenta.
           </ThemedText>
-          <Button label="Reenviar correo" variant="tonal" fullWidth={false} onPress={onResend} loading={verifying} />
+          <Button label="Reenviar correo" variant="tonal" fullWidth={false} onPress={() => void onResend()} loading={verifying} />
         </Card>
-      )}
+      ) : null}
 
       <View style={styles.section}>
         <ThemedText type="subtitle">Apariencia</ThemedText>
@@ -401,25 +403,26 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: Spacing.three,
   },
+  cover: {
+    height: 140,
+    borderRadius: Radius.lg,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     gap: Spacing.three,
-  },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarMark: {
-    fontSize: 28,
-    fontWeight: '700',
+    marginTop: -Spacing.five,
+    paddingHorizontal: Spacing.two,
   },
   headerText: {
     flex: 1,
     gap: 2,
+    paddingBottom: Spacing.two,
   },
   title: {
     fontSize: 26,

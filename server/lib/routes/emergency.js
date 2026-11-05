@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const public_error_1 = require("../lib/public-error");
 const firebase_admin_1 = require("../lib/firebase-admin");
 const chat_config_1 = require("../lib/chat-config");
 const auth_1 = require("../middleware/auth");
@@ -27,7 +28,7 @@ router.post('/', auth_1.requireAuth, async (req, res) => {
     catch (e) {
         console.error('[emergencyState] error:', e?.message);
         return res.status(500).json({
-            message: e?.message || 'Error al consultar el estado de emergencia',
+            message: (0, public_error_1.publicErrorMessage)(e, 'Error al consultar el estado de emergencia'),
         });
     }
 });

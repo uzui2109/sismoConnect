@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EMERGENCY_COOLDOWN_SECONDS = exports.COOLDOWN_SECONDS = void 0;
+exports.MAX_STORED_UNLOCKS = exports.EMERGENCY_COOLDOWN_SECONDS = exports.COOLDOWN_SECONDS = void 0;
 exports.toMillis = toMillis;
 exports.positiveSeconds = positiveSeconds;
-exports.COOLDOWN_SECONDS = 60;
+exports.COOLDOWN_SECONDS = 30;
 exports.EMERGENCY_COOLDOWN_SECONDS = 600;
+exports.MAX_STORED_UNLOCKS = 1;
 function toMillis(value) {
     if (typeof value === 'number' && Number.isFinite(value))
         return value;
