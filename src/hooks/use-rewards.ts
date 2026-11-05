@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import Constants from 'expo-constants';
 
 import { adsEnabled, platform } from '@/constants/config';
 import { showRewardedAd } from '@/lib/rewarded-ad';
@@ -9,11 +10,13 @@ import {
 } from '@/services/social';
 import type { RewardState } from '@/types/social';
 
+const isExpoGo = Constants.appOwnership === 'expo';
+
 const EMPTY_STATE: RewardState = { unlocks: 0, lastMessageAt: 0, lastEmergencyAt: 0 };
 
 export function useRewards() {
   const { user, isConfigured, isLocalGuest } = useAuth();
-  const enabled = isConfigured && user !== null && !isLocalGuest && adsEnabled && platform === 'native';
+  const enabled = isConfigured && user !== null && !isLocalGuest && adsEnabled && platform === 'native' && !isExpoGo;
   const uid = enabled && user ? user.uid : null;
   const [state, setState] = useState<RewardState>(EMPTY_STATE);
   const [loading, setLoading] = useState(enabled);
@@ -51,6 +54,7 @@ export function useRewards() {
 
   const watchAd = useCallback(async () => {
     if (!uid) throw new Error('Inicia sesión para desbloquear un envío.');
+    if (isExpoGo) throw new Error('Los anuncios recompensados no están disponibles en Expo Go.');
     setBusy(true);
     setError(null);
     try {

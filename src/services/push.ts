@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { httpsCallable } from 'firebase/functions';
 import { Platform } from 'react-native';
 
@@ -14,7 +13,14 @@ const ENABLED_KEY = 'sismoconnect:push-enabled';
 
 export type { PushRegistrationResult };
 
-export function configureNotificationHandler() {
+const isExpoGo = Constants.appOwnership === 'expo';
+
+export async function configureNotificationHandler() {
+  if (isExpoGo) {
+    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    return;
+  }
+  const Notifications = await import('expo-notifications');
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
@@ -35,6 +41,11 @@ async function deviceId(): Promise<string> {
 
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android') return;
+  if (isExpoGo) {
+    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    return;
+  }
+  const Notifications = await import('expo-notifications');
   await Notifications.setNotificationChannelAsync('default', {
     name: 'Avisos generales',
     importance: Notifications.AndroidImportance.DEFAULT,
@@ -57,6 +68,13 @@ export async function enablePushNotifications(): Promise<PushRegistrationResult>
   if (Platform.OS === 'web') {
     return { status: 'unsupported', message: 'Los avisos push están disponibles en Android.' };
   }
+  if (isExpoGo) {
+    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    return {
+      status: 'unsupported',
+      message: 'Notificaciones desactivadas en Expo Go.',
+    };
+  }
   if (!Device.isDevice) {
     return {
       status: 'unsupported',
@@ -66,6 +84,7 @@ export async function enablePushNotifications(): Promise<PushRegistrationResult>
 
   try {
     await ensureAndroidChannel();
+    const Notifications = await import('expo-notifications');
     const current = await Notifications.getPermissionsAsync();
     const permission = current.granted
       ? current
@@ -112,6 +131,10 @@ export async function enablePushNotifications(): Promise<PushRegistrationResult>
 
 export async function disablePushNotifications(): Promise<void> {
   if (Platform.OS === 'web') return;
+  if (isExpoGo) {
+    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    return;
+  }
   const callable = httpsCallable<{ deviceId: string }, { unregistered: boolean }>(
     getFirebaseFunctions(),
     'unregisterPushDevice'
@@ -122,46 +145,66 @@ export async function disablePushNotifications(): Promise<void> {
 
 export function observePushTokenChanges(): () => void {
   if (Platform.OS === 'web') return () => undefined;
+  if (isExpoGo) {
+    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    return () => undefined;
+  }
 
-  const subscription = Notifications.addPushTokenListener((token) => {
-    const value = typeof token.data === 'string' ? token.data : '';
-    if (!value) return;
-    void AsyncStorage.getItem(ENABLED_KEY)
-      .then(async (enabled) => {
-        if (enabled !== 'true') return;
-        const permission = await Notifications.getPermissionsAsync();
-        if (!permission.granted) return;
-        const callable = httpsCallable<
-          { token: string; platform: string; deviceId: string; appVersion: string | null },
-          { registered: boolean }
-        >(getFirebaseFunctions(), 'registerPushDevice');
-        await callable({
-          token: value,
-          platform: Platform.OS,
-          deviceId: await deviceId(),
-          appVersion: Constants.expoConfig?.version ?? null,
-        });
-      })
-      .catch(() => undefined);
+  let subscription: { remove: () => void } | null = null;
+
+  void import('expo-notifications').then((Notifications) => {
+    subscription = Notifications.addPushTokenListener((token) => {
+      const value = typeof token.data === 'string' ? token.data : '';
+      if (!value) return;
+      void AsyncStorage.getItem(ENABLED_KEY)
+        .then(async (enabled) => {
+          if (enabled !== 'true') return;
+          const permission = await Notifications.getPermissionsAsync();
+          if (!permission.granted) return;
+          const callable = httpsCallable<
+            { token: string; platform: string; deviceId: string; appVersion: string | null },
+            { registered: boolean }
+          >(getFirebaseFunctions(), 'registerPushDevice');
+          await callable({
+            token: value,
+            platform: Platform.OS,
+            deviceId: await deviceId(),
+            appVersion: Constants.expoConfig?.version ?? null,
+          });
+        })
+        .catch(() => undefined);
+    });
   });
 
-  return () => subscription.remove();
+  return () => {
+    subscription?.remove();
+  };
 }
 
 export function observePushResponses(
   onOpen: (data: Record<string, unknown>) => void
 ): () => void {
   if (Platform.OS === 'web') return () => undefined;
+  if (isExpoGo) {
+    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    return () => undefined;
+  }
 
-  const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-    onOpen(response.notification.request.content.data as Record<string, unknown>);
-  });
+  let subscription: { remove: () => void } | null = null;
 
-  void Notifications.getLastNotificationResponseAsync().then((response) => {
-    if (response) {
+  void import('expo-notifications').then((Notifications) => {
+    subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       onOpen(response.notification.request.content.data as Record<string, unknown>);
-    }
+    });
+
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        onOpen(response.notification.request.content.data as Record<string, unknown>);
+      }
+    });
   });
 
-  return () => subscription.remove();
+  return () => {
+    subscription?.remove();
+  };
 }

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { router, type Href } from 'expo-router';
+import Constants from 'expo-constants';
 
 import { useAuth } from '@/providers/auth-provider';
 import {
@@ -8,12 +9,18 @@ import {
   observePushTokenChanges,
 } from '@/services/push';
 
+const isExpoGo = Constants.appOwnership === 'expo';
+
 export function useNotificationObserver() {
   const { user } = useAuth();
 
   useEffect(() => {
+    if (isExpoGo) {
+      console.warn('[Push Warning] Observer de notificaciones desactivado en Expo Go');
+      return;
+    }
     if (!user) return;
-    configureNotificationHandler();
+    void configureNotificationHandler();
     const stopTokenChanges = observePushTokenChanges();
     const stopResponses = observePushResponses((data) => {
       const chatId = typeof data.chatId === 'string' ? data.chatId : null;
