@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -43,6 +43,7 @@ export default function MonitorScreen() {
   const [filter, setFilter] = useState<MagnitudeFilter>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Quake | null>(null);
+  const [visibleCount, setVisibleCount] = useState(7);
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -61,6 +62,9 @@ export default function MonitorScreen() {
       );
     });
   }, [data, filter, search, selectedCountries]);
+
+  const paginated = visible.slice(0, visibleCount);
+  const hasMore = visibleCount < visible.length;
 
   const strongest = useMemo(
     () =>
@@ -83,7 +87,25 @@ export default function MonitorScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.screen, { backgroundColor: theme.background }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: insets.bottom + 96, maxWidth: MaxContentWidth },
+      ]}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            haptics.select();
+            void refetch();
+          }}
+          tintColor={theme.primary}
+          colors={[theme.primary]}
+        />
+      }
+    >
       <View style={[styles.header, { paddingTop: insets.top + Spacing.two }]}>
         <MonitorHero
           total={data.length}
@@ -165,7 +187,7 @@ export default function MonitorScreen() {
       </View>
 
       {loading ? (
-        <View style={[styles.list, styles.scrollContainer]}>
+        <View style={styles.list}>
           {Array.from({ length: 6 }).map((_, index) => (
             <SkeletonRow key={index} />
           ))}
@@ -174,35 +196,22 @@ export default function MonitorScreen() {
         <ErrorState message={error} onRetry={() => void refetch()} />
       ) : (
         <SectionList
-          style={[styles.scrollContainer, { minHeight: 0 }]}
-          sections={[{ key: 'all', data: visible }]}
+          scrollEnabled={false}
+          sections={[{ key: 'all', data: paginated }]}
           keyExtractor={(quake) => quake.id}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: insets.bottom + 96, maxWidth: MaxContentWidth, flexGrow: 1 },
-          ]}
+          contentContainerStyle={styles.list}
           stickySectionHeadersEnabled={false}
           renderSectionHeader={() => (
             <View style={styles.sectionHeader}>
               <ThemedText type="small" themeColor="textSecondary">
-                {pluralize(visible.length, 'evento', 'eventos')} · últimas 24 h
+                {pluralize(paginated.length, 'evento', 'eventos')} de {visible.length} · últimas 24 h
               </ThemedText>
             </View>
           )}
           renderItem={({ item }) => (
             <QuakeRow quake={item} dimmed={viewed.includes(item.id)} onPress={() => open(item)} />
           )}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                haptics.select();
-                void refetch();
-              }}
-              tintColor={theme.primary}
-              colors={[theme.primary]}
-            />
-          }
+
           ItemSeparatorComponent={() => <View style={{ height: Spacing.two }} />}
           ListEmptyComponent={
             <EmptyState
@@ -232,6 +241,20 @@ export default function MonitorScreen() {
                 <ThemedText type="small" themeColor="textSecondary" style={styles.credit}>
                   {USGS_ATTRIBUTION}
                 </ThemedText>
+                {hasMore ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver más eventos sísmicos"
+                    onPress={() =>
+                      setVisibleCount((prev) => Math.min(prev + 7, visible.length))
+                    }
+                    style={styles.moreButton}
+                  >
+                    <ThemedText type="smallBold" style={{ color: theme.primary }}>
+                      Ver más
+                    </ThemedText>
+                  </Pressable>
+                ) : null}
               </View>
             ) : null
           }
@@ -239,13 +262,17 @@ export default function MonitorScreen() {
       )}
 
       <QuakeDetailModal quake={selected} onClose={() => setSelected(null)} />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+  },
+  content: {
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     paddingHorizontal: Spacing.four,
@@ -332,5 +359,10 @@ const styles = StyleSheet.create({
   },
   credit: {
     textAlign: 'center',
+  },
+  moreButton: {
+    alignSelf: 'center',
+    paddingVertical: Spacing.three,
+    gap: 2,
   },
 });
