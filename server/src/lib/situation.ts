@@ -101,7 +101,7 @@ function stripHtml(value: string): string {
 
 function safeHttpsUrl(value: unknown): string | null {
   const url = text(value, 2048);
-  return /^https:\/\//i.test(url) ? url : null;
+  return /^https?:\/\/.+/i.test(url) ? url : null;
 }
 
 async function fetchText(url: string): Promise<string> {

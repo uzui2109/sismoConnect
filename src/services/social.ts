@@ -31,6 +31,8 @@ const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL || '';
 const REQUEST_TIMEOUT_MS = 15000;
 
 const inflightMap = new Map<string, Promise<any>>();
+let lastNetworkFailAt = 0;
+const RETRY_LOCK_MS = 3000;
 
 function isLoopbackHost(host: string): boolean {
   const normalized = host.toLowerCase();
@@ -57,12 +59,12 @@ function defaultApiBase(): string {
   return `http://${host || 'localhost'}:8085`;
 }
 
-function getApiBase(): string {
+export function getApiBase(): string {
   const env = EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
   if (env) {
     try {
-      const url = new URL(env);
-      if (!isLoopbackHost(url.hostname)) return env;
+      new URL(env);
+      return env;
     } catch {}
   }
   return defaultApiBase();
@@ -490,7 +492,11 @@ async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
     url = `${base}/${path.replace(/^\/+/, '')}`;
     console.log('[social.invokeHttp] POST', url);
 
-    const key = 'POST:' + path.replace(/^\/+/, '') + ':' + JSON.stringify(data);
+    if (Date.now() - lastNetworkFailAt < RETRY_LOCK_MS) {
+      throw new Error('El servidor local (puerto 8085) no respondió a tiempo.');
+    }
+
+    const key = 'POST:' + path.replace(/^\/+/, '');
     if (inflightMap.has(key)) {
       return inflightMap.get(key);
     }
@@ -555,11 +561,13 @@ async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
       errorMessage.includes('Fetch request has been canceled');
 
     if (isCancel) {
+      lastNetworkFailAt = Date.now();
       console.log('[social.invokeHttp] Cancelado:', path, '-', target);
       throw new Error('El servidor local (puerto 8085) no respondió a tiempo.');
     }
 
     if (error instanceof TypeError && /fetch|network/i.test(error.message)) {
+      lastNetworkFailAt = Date.now();
       console.log('[social.invokeHttp] Error de red:', path, '-', target);
       throw new Error(
         `No se pudo conectar con el servidor en ${target}. Verifica que el backend esté en marcha.`

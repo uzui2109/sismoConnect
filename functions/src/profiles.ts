@@ -207,8 +207,8 @@ export const updateProfile = onCall(CALL_OPTIONS, async (request) => {
 
   function optionalUrl(value: unknown): string | null {
     if (value === null || value === undefined || value === '') return null;
-    if (typeof value !== 'string' || !/^https:\/\//i.test(value)) {
-      throw new HttpsError('invalid-argument', 'La imagen debe ser una URL HTTPS.');
+    if (typeof value !== 'string' || !/^https?:\/\/.+/i.test(value)) {
+      throw new HttpsError('invalid-argument', 'La imagen debe ser una URL HTTP o HTTPS válida.');
     }
     return value.slice(0, 2048);
   }

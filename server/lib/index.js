@@ -31,7 +31,7 @@ app.use((0, cors_1.default)({
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.options('*', (0, cors_1.default)());
-app.use(express_1.default.json());
+app.use(express_1.default.json({ limit: '4mb' }));
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok', port: Number(process.env.PORT) || 8085, timestamp: Date.now() });
 });

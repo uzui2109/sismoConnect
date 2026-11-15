@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
-import { Image } from 'expo-image';
 import { goBack } from '@/utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,10 +9,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/providers/auth-provider';
 import { haptics } from '@/lib/haptics';
 import { getCountries, getCountryByCode } from '@/services/countries';
-import { pickAndUploadProfileImage, type ProfileImageKind } from '@/services/profile-images';
 import { socialErrorMessage } from '@/services/social';
 import type { Country } from '@/types/country';
-import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -31,14 +28,11 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState('');
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(true);
-  const [photoURL, setPhotoURL] = useState<string | null>(null);
-  const [coverURL, setCoverURL] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [usernameDraft, setUsernameDraft] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [claiming, setClaiming] = useState(false);
-  const [imageBusy, setImageBusy] = useState<ProfileImageKind | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [countryOpen, setCountryOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
@@ -49,8 +43,6 @@ export default function EditProfileScreen() {
     setBio(profile.bio);
     setCountryCode(profile.countryCode);
     setIsPublic(profile.isPublic);
-    setPhotoURL(profile.photoURL);
-    setCoverURL(profile.coverURL);
     setUsername(profile.username ?? '');
     setUsernameDraft(profile.username ?? '');
     setHydrated(true);
@@ -85,8 +77,8 @@ export default function EditProfileScreen() {
         language: profile?.language ?? 'es',
         isPublic,
         notificationsEnabled: profile?.notificationsEnabled ?? false,
-        photoURL,
-        coverURL,
+        photoURL: null,
+        coverURL: null,
       });
       haptics.success();
       Alert.alert('Perfil actualizado', 'Tus cambios ya están visibles.');
@@ -117,36 +109,6 @@ export default function EditProfileScreen() {
       setLocalError(socialErrorMessage(claimError));
     } finally {
       setClaiming(false);
-    }
-  }
-
-  async function onChangeImage(kind: ProfileImageKind) {
-    if (!profile) return;
-    setImageBusy(kind);
-    setLocalError(null);
-    try {
-      const url = await pickAndUploadProfileImage(profile.uid, kind);
-      if (!url) return;
-      const nextPhoto = kind === 'avatar' ? url : photoURL;
-      const nextCover = kind === 'cover' ? url : coverURL;
-      await updateProfile({
-        displayName: displayName.trim() || profile.displayName,
-        bio: bio.trim(),
-        countryCode,
-        language: profile.language,
-        isPublic,
-        notificationsEnabled: profile.notificationsEnabled,
-        photoURL: nextPhoto,
-        coverURL: nextCover,
-      });
-      if (kind === 'avatar') setPhotoURL(url);
-      else setCoverURL(url);
-      haptics.success();
-    } catch (imageError) {
-      haptics.error();
-      setLocalError(socialErrorMessage(imageError));
-    } finally {
-      setImageBusy(null);
     }
   }
 
@@ -213,43 +175,6 @@ export default function EditProfileScreen() {
           Tu nombre público, usuario y país ayudan a encontrarte en la comunidad.
         </ThemedText>
       </View>
-
-      <View style={styles.images}>
-        <View style={[styles.cover, { backgroundColor: theme.primaryContainer }]}>
-          {coverURL ? (
-            <Image source={{ uri: coverURL }} style={styles.coverImage} contentFit="cover" />
-          ) : (
-            <ThemedText type="small" style={{ color: theme.onPrimaryContainer }}>
-              Portada
-            </ThemedText>
-          )}
-          <View style={styles.coverActions}>
-            <Button
-              label={coverURL ? 'Cambiar portada' : 'Añadir portada'}
-              variant="tonal"
-              fullWidth={false}
-              loading={imageBusy === 'cover'}
-              onPress={() => void onChangeImage('cover')}
-            />
-          </View>
-        </View>
-        <View style={styles.avatarRow}>
-          <Avatar uri={photoURL} name={displayName || profile.displayName} size={84} />
-          <Button
-            label={photoURL ? 'Cambiar foto' : 'Añadir foto'}
-            variant="outlined"
-            fullWidth={false}
-            loading={imageBusy === 'avatar'}
-            onPress={() => void onChangeImage('avatar')}
-          />
-        </View>
-      </View>
-
-      {!imageBusy ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          Las imágenes se recortan y comprimen antes de subirse. Límite: 2 MB.
-        </ThemedText>
-      ) : null}
 
       {localError ? (
         <Card style={[styles.notice, { borderColor: theme.error }]}>
@@ -452,32 +377,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     lineHeight: 36,
-  },
-  images: {
-    gap: Spacing.three,
-  },
-  cover: {
-    height: 160,
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-  },
-  coverActions: {
-    position: 'absolute',
-    right: Spacing.two,
-    bottom: Spacing.two,
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    marginTop: -Spacing.five,
-    paddingHorizontal: Spacing.two,
   },
   notice: {
     borderWidth: 2,

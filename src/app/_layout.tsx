@@ -3,8 +3,8 @@ import '../global.css';
 import { Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { LogBox, ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
@@ -12,6 +12,12 @@ import { navigationTheme } from '@/lib/navigation-theme';
 import { ThemePreferenceProvider, useThemePreference } from '@/hooks/use-theme-preference';
 import { useNotificationObserver } from '@/hooks/use-notification-observer';
 import { ThemedText } from '@/components/themed-text';
+
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    "Can't perform a React state update on a component that hasn't mounted yet",
+  ]);
+}
 
 // Hold the native splash until Firebase has restored any persisted session.
 void SplashScreen.preventAutoHideAsync();

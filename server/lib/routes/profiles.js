@@ -131,8 +131,8 @@ router.post('/updateProfile', auth_1.requireAuth, async (req, res) => {
         function optionalUrl(value) {
             if (value === null || value === undefined || value === '')
                 return null;
-            if (typeof value !== 'string' || !/^https:\/\//i.test(value)) {
-                throw new Error('La imagen debe ser una URL HTTPS.');
+            if (typeof value !== 'string' || !/^https?:\/\/.+/i.test(value)) {
+                throw new Error('La imagen debe ser una URL HTTP o HTTPS válida.');
             }
             return value.slice(0, 2048);
         }

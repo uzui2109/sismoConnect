@@ -34,7 +34,7 @@ app.use(
 );
 
 app.options('*', cors());
-app.use(express.json());
+app.use(express.json({ limit: '4mb' }));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', port: Number(process.env.PORT) || 8085, timestamp: Date.now() });

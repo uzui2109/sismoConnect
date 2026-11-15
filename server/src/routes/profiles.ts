@@ -147,8 +147,8 @@ router.post('/updateProfile', requireAuth, async (req: AuthedRequest, res) => {
 
     function optionalUrl(value: unknown): string | null {
       if (value === null || value === undefined || value === '') return null;
-      if (typeof value !== 'string' || !/^https:\/\//i.test(value)) {
-        throw new Error('La imagen debe ser una URL HTTPS.');
+      if (typeof value !== 'string' || !/^https?:\/\/.+/i.test(value)) {
+        throw new Error('La imagen debe ser una URL HTTP o HTTPS válida.');
       }
       return value.slice(0, 2048);
     }
@@ -355,4 +355,5 @@ router.post('/updateNotificationPrefs', requireAuth, async (req: AuthedRequest, 
     res.status(400).json({ message: publicErrorMessage(e, 'Error al actualizar notificaciones') });
   }
 });
+
 export default router;
