@@ -37,7 +37,7 @@ app.options('*', cors());
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true });
+  res.json({ status: 'ok', port: Number(process.env.PORT) || 8085, timestamp: Date.now() });
 });
 
 app.use('/profiles', profiles);
@@ -60,5 +60,5 @@ app.use((err: any, _req: any, res: any, _next: any) => {
 
 const port = Number(process.env.PORT) || 8085;
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${port}`);
+  console.log(`[Server] Escuchando en 0.0.0.0:${port}`);
 });

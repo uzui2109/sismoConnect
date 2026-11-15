@@ -16,7 +16,7 @@ export function useNotificationObserver() {
 
   useEffect(() => {
     if (isExpoGo) {
-      console.warn('[Push Warning] Observer de notificaciones desactivado en Expo Go');
+      console.info('[Push Warning] Observer de notificaciones desactivado en Expo Go');
       return;
     }
     if (!user) return;

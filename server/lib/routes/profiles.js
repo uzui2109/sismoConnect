@@ -29,6 +29,7 @@ function cleanString(value, max) {
     return value.trim().slice(0, max);
 }
 router.post('/bootstrap', auth_1.requireAuth, async (req, res) => {
+    console.log('[POST /profiles/bootstrap] Request recibida', { uid: req.user?.uid });
     try {
         const uid = req.user.uid;
         const now = Date.now();
@@ -109,7 +110,7 @@ router.post('/bootstrap', auth_1.requireAuth, async (req, res) => {
         });
     }
     catch (e) {
-        console.error('BOOTSTRAP_FATAL', e);
+        console.log('[POST /profiles/bootstrap] Error:', e instanceof Error ? e.message : String(e), 'uid:', req.user?.uid);
         res.status(500).json({ message: (0, public_error_1.publicErrorMessage)(e, 'Error interno al inicializar el perfil') });
     }
 });

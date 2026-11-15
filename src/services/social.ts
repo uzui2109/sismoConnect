@@ -26,19 +26,46 @@ import type {
   UserProfile,
 } from '@/types/social';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || '';
+const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+
+const REQUEST_TIMEOUT_MS = 15000;
+
+const inflightMap = new Map<string, Promise<any>>();
+
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.toLowerCase();
+  return (
+    normalized === 'localhost' ||
+    normalized === '127.0.0.1' ||
+    normalized === '::1' ||
+    normalized.startsWith('127.') ||
+    normalized.startsWith('0.0.0.0')
+  );
+}
 
 function defaultApiBase(): string {
   if (Platform.OS === 'web') {
     const host = (globalThis as { location?: { hostname?: string } }).location?.hostname;
+    if (host && !isLoopbackHost(host)) return `http://${host}:8085`;
     if (host) return `http://${host}:8085`;
   }
   const expoConfig = Constants.expoConfig as { hostUri?: string } | null;
   const expoGoConfig = (Constants as unknown as { expoGoConfig?: { debuggerHost?: string } })
     .expoGoConfig;
   const hostUri = expoConfig?.hostUri || expoGoConfig?.debuggerHost || '';
-  const host = hostUri.split(':')[0];
+  const host = hostUri ? hostUri.split(':')[0] : '';
   return `http://${host || 'localhost'}:8085`;
+}
+
+function getApiBase(): string {
+  const env = EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
+  if (env) {
+    try {
+      const url = new URL(env);
+      if (!isLoopbackHost(url.hostname)) return env;
+    } catch {}
+  }
+  return defaultApiBase();
 }
 
 export function toMillis(value: unknown): number {
@@ -424,15 +451,25 @@ export function subscribeToMessages(
   );
 }
 
+function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  ms: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeout));
+}
+
 async function postJson(url: string, token: string, data: unknown): Promise<Response> {
-  return fetch(url, {
+  return fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
-  });
+  }, REQUEST_TIMEOUT_MS);
 }
 
 async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
@@ -449,64 +486,87 @@ async function invokeHttp<TInput extends Record<string, unknown>, TOutput>(
       throw unauthenticated;
     }
 
-    const base = (API_BASE || defaultApiBase()).replace(/\/+$/, '');
+    const base = getApiBase();
     url = `${base}/${path.replace(/^\/+/, '')}`;
     console.log('[social.invokeHttp] POST', url);
 
-    let res = await postJson(url, await user.getIdToken(), data);
+    const key = 'POST:' + path.replace(/^\/+/, '') + ':' + JSON.stringify(data);
+    if (inflightMap.has(key)) {
+      return inflightMap.get(key);
+    }
 
-    if (res.status === 401) {
-      // Token expirado o revocado: renovamos una vez y reintentamos.
+    const promise = (async (): Promise<TOutput> => {
       try {
-        res = await postJson(url, await user.getIdToken(true), data);
-      } catch {
-        // Sin red para renovar; se resuelve como sesión expirada abajo.
+        let res = await postJson(url, await user.getIdToken(), data);
+
+        if (res.status === 401) {
+          try {
+            res = await postJson(url, await user.getIdToken(true), data);
+          } catch {}
+          if (res.status === 401) {
+            await signOut(auth).catch(() => undefined);
+            const expired = new Error(
+              'Tu sesión expiró. Inicia sesión de nuevo.'
+            ) as Error & { status?: number };
+            expired.status = 401;
+            throw expired;
+          }
+        }
+
+        const text = await res.text();
+        if (!res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          let err: any = {};
+          if (contentType.includes('application/json')) {
+            try {
+              err = JSON.parse(text);
+            } catch {}
+          }
+          console.log('[social.invokeHttp] Error response', res.status, text);
+          const error = new Error(err.message || `Error en servidor (${res.status})`) as Error & {
+            status?: number;
+            details?: unknown;
+          };
+          error.status = res.status;
+          error.details =
+            err.details ??
+            (typeof err.nextAllowedAt === 'number'
+              ? { nextAllowedAt: err.nextAllowedAt }
+              : undefined);
+          throw error;
+        }
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text as any;
+        }
+      } finally {
+        inflightMap.delete(key);
       }
-      if (res.status === 401) {
-        await signOut(auth).catch(() => undefined);
-        const expired = new Error(
-          'Tu sesión expiró. Inicia sesión de nuevo.'
-        ) as Error & { status?: number };
-        expired.status = 401;
-        throw expired;
-      }
+    })();
+    inflightMap.set(key, promise);
+    return promise;
+  } catch (error) {
+    const target = url || getApiBase();
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isCancel =
+      (error instanceof Error &&
+        (error.name === 'AbortError' || error.name === 'CodedError')) ||
+      errorMessage.includes('Fetch request has been canceled');
+
+    if (isCancel) {
+      console.log('[social.invokeHttp] Cancelado:', path, '-', target);
+      throw new Error('El servidor local (puerto 8085) no respondió a tiempo.');
     }
 
-    const text = await res.text();
-    if (!res.ok) {
-      const contentType = res.headers.get('content-type') || '';
-      let err: any = {};
-      if (contentType.includes('application/json')) {
-        try {
-          err = JSON.parse(text);
-        } catch {}
-      }
-      console.error('[social.invokeHttp] Error response', res.status, text);
-      const error = new Error(err.message || `Error en servidor (${res.status})`) as Error & {
-        status?: number;
-        details?: unknown;
-      };
-      error.status = res.status;
-      error.details =
-        err.details ??
-        (typeof err.nextAllowedAt === 'number'
-          ? { nextAllowedAt: err.nextAllowedAt }
-          : undefined);
-      throw error;
-    }
-    try {
-      return JSON.parse(text);
-    } catch {
-      return text as any;
-    }
-  } catch (error) {
-    console.error(`[social.invokeHttp] Error calling ${path}:`, error);
     if (error instanceof TypeError && /fetch|network/i.test(error.message)) {
-      const target = url || API_BASE || defaultApiBase();
+      console.log('[social.invokeHttp] Error de red:', path, '-', target);
       throw new Error(
         `No se pudo conectar con el servidor en ${target}. Verifica que el backend esté en marcha.`
       );
     }
+
+    console.log('[social.invokeHttp] Error llamando', path, '-', String(error));
     throw error;
   }
 }

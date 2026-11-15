@@ -32,6 +32,7 @@ function cleanString(value: unknown, max: number): string {
 }
 
 router.post('/bootstrap', requireAuth, async (req: AuthedRequest, res) => {
+  console.log('[POST /profiles/bootstrap] Request recibida', { uid: req.user?.uid });
   try {
     const uid = req.user!.uid;
     const now = Date.now();
@@ -117,7 +118,12 @@ router.post('/bootstrap', requireAuth, async (req: AuthedRequest, res) => {
       updatedAt: userData.updatedAt ?? now,
     });
   } catch (e: any) {
-    console.error('BOOTSTRAP_FATAL', e);
+    console.log(
+      '[POST /profiles/bootstrap] Error:',
+      e instanceof Error ? e.message : String(e),
+      'uid:',
+      req.user?.uid
+    );
     res.status(500).json({ message: publicErrorMessage(e, 'Error interno al inicializar el perfil') });
   }
 });

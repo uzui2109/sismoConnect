@@ -89,7 +89,7 @@ export default function CommunityScreen() {
       const { chatId } = await joinGlobalChat();
       router.push({ pathname: '/chat/[chatId]', params: { chatId } });
     } catch (e) {
-      console.error('[Community][openGlobal]', e);
+      console.log('[Community][openGlobal]', e instanceof Error ? e.message : String(e));
       haptics.error();
       setBannerErr(socialErrorMessage(e));
     } finally {

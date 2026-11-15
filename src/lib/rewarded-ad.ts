@@ -47,7 +47,7 @@ let initialized: Promise<unknown> | null = null;
 
 export async function showRewardedAd(userId: string): Promise<{ earned: boolean }> {
   if (isExpoGo) {
-    console.warn('[AdMob Warning] Anuncios desactivados en Expo Go');
+    console.info('[AdMob Warning] Anuncios desactivados en Expo Go');
     const ad = createRewardedAdMock(admobRewardedUnitId, {
       requestNonPersonalizedAdsOnly: true,
       serverSideVerificationOptions: {

@@ -54,7 +54,11 @@ export function useRewards() {
 
   const watchAd = useCallback(async () => {
     if (!uid) throw new Error('Inicia sesión para desbloquear un envío.');
-    if (isExpoGo) throw new Error('Los anuncios recompensados no están disponibles en Expo Go.');
+    if (isExpoGo) {
+      const msg = 'Los anuncios recompensados no están disponibles en Expo Go.';
+      setError(msg);
+      return { earned: false, unlocks: state.unlocks };
+    }
     setBusy(true);
     setError(null);
     try {
@@ -72,7 +76,7 @@ export function useRewards() {
     } finally {
       setBusy(false);
     }
-  }, [uid]);
+  }, [uid, state.unlocks]);
 
   return { enabled, unlocks: state.unlocks, state, loading, busy, error, refresh, watchAd };
 }

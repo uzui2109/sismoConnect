@@ -11,7 +11,6 @@ import {
   updateNotificationPrefs as updateNotificationPrefsRequest,
 } from '@/services/social';
 import type { NotificationPrefs, PublicProfile, UserProfile } from '@/types/social';
-import { describeError } from '@/utils/errors';
 
 export function useProfile() {
   const { user, isConfigured, isLocalGuest } = useAuth();
@@ -21,6 +20,10 @@ export function useProfile() {
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const bootstrapped = useRef<string | null>(null);
+  const inFlightRef = useRef<{ uid: string | null; promise: Promise<UserProfile> | null }>({
+    uid: null,
+    promise: null,
+  });
 
   useEffect(() => {
     if (!uid) {
@@ -43,10 +46,9 @@ export function useProfile() {
           setLoading(false);
         },
         (listenerError) => {
-          console.error('[useProfile] subscribeToOwnProfile error:', listenerError);
-          console.error(
-            '[useProfile] subscribeToOwnProfile error details:',
-            describeError(listenerError)
+          console.log(
+            '[useProfile] subscribeToOwnProfile error:',
+            listenerError instanceof Error ? listenerError.message : String(listenerError)
           );
           if (!active) return;
           setError(socialErrorMessage(listenerError));
@@ -54,9 +56,9 @@ export function useProfile() {
         }
       );
 
-      if (bootstrapped.current !== uid) {
-        bootstrapped.current = uid;
-        void bootstrapProfile()
+      if (inFlightRef.current?.uid === uid && inFlightRef.current?.promise) {
+        // Reutiliza la petición en vuelo para evitar llamadas duplicadas.
+        void inFlightRef.current.promise
           .then((next) => {
             if (active) {
               setProfile((current) => current ?? next);
@@ -64,16 +66,38 @@ export function useProfile() {
             }
           })
           .catch((bootstrapError) => {
-            console.error('[useProfile] bootstrapProfile failed:', bootstrapError);
-            console.error(
-              '[useProfile] bootstrapProfile error details:',
-              describeError(bootstrapError)
-            );
             if (active) setError(socialErrorMessage(bootstrapError));
           })
           .finally(() => {
             if (active) setLoading(false);
           });
+      } else if (bootstrapped.current !== uid) {
+        bootstrapped.current = uid;
+        const bootstrapPromise = bootstrapProfile()
+          .then((next) => {
+            if (active) {
+              setProfile((current) => current ?? next);
+              setError(null);
+            }
+            return next;
+          })
+          .catch((bootstrapError) => {
+            console.log(
+              '[useProfile] bootstrapProfile failed:',
+              bootstrapError instanceof Error ? bootstrapError.message : String(bootstrapError)
+            );
+            if (active) setError(socialErrorMessage(bootstrapError));
+            throw bootstrapError;
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+            // Libera la referencia solo si sigue siendo la misma petición en vuelo.
+            if (inFlightRef.current?.uid === uid) {
+              inFlightRef.current = { uid: null, promise: null };
+            }
+          });
+        inFlightRef.current = { uid, promise: bootstrapPromise };
+        void bootstrapPromise.catch(() => {});
       } else {
         // Already bootstrapped for this uid, ensure loading doesn't hang
         setLoading(false);
@@ -84,7 +108,10 @@ export function useProfile() {
         unsubscribe();
       };
     } catch (effectError) {
-      console.error('[useProfile] useEffect crashed:', effectError);
+      console.log(
+        '[useProfile] useEffect crashed:',
+        effectError instanceof Error ? effectError.message : String(effectError)
+      );
       if (active) {
         setError(socialErrorMessage(effectError));
         setLoading(false);
@@ -98,13 +125,29 @@ export function useProfile() {
     setLoading(true);
     setError(null);
     try {
-      const next = await bootstrapProfile();
+      // Reutiliza petición en vuelo si corresponde.
+      if (inFlightRef.current?.uid === uid && inFlightRef.current?.promise) {
+        const next = await inFlightRef.current.promise;
+        setProfile((current) => current ?? next);
+        setError(null);
+        return next;
+      }
+      const bootstrapPromise = bootstrapProfile().then((next) => {
+        if (inFlightRef.current?.uid === uid) {
+          inFlightRef.current = { uid: null, promise: null };
+        }
+        return next;
+      });
+      inFlightRef.current = { uid, promise: bootstrapPromise };
+      const next = await bootstrapPromise;
       setProfile(next);
       setError(null);
       return next;
     } catch (refreshError) {
-      console.error('[useProfile] refresh failed:', refreshError);
-      console.error('[useProfile] refresh error details:', describeError(refreshError));
+      console.log(
+        '[useProfile] refresh failed:',
+        refreshError instanceof Error ? refreshError.message : String(refreshError)
+      );
       setError(socialErrorMessage(refreshError));
       throw refreshError;
     } finally {

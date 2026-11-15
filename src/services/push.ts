@@ -17,7 +17,7 @@ const isExpoGo = Constants.appOwnership === 'expo';
 
 export async function configureNotificationHandler() {
   if (isExpoGo) {
-    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    console.info('[Push Warning] Notificaciones desactivadas en Expo Go');
     return;
   }
   const Notifications = await import('expo-notifications');
@@ -42,7 +42,7 @@ async function deviceId(): Promise<string> {
 async function ensureAndroidChannel() {
   if (Platform.OS !== 'android') return;
   if (isExpoGo) {
-    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    console.info('[Push Warning] Notificaciones desactivadas en Expo Go');
     return;
   }
   const Notifications = await import('expo-notifications');
@@ -69,7 +69,7 @@ export async function enablePushNotifications(): Promise<PushRegistrationResult>
     return { status: 'unsupported', message: 'Los avisos push están disponibles en Android.' };
   }
   if (isExpoGo) {
-    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    console.info('[Push Warning] Notificaciones desactivadas en Expo Go');
     return {
       status: 'unsupported',
       message: 'Notificaciones desactivadas en Expo Go.',
@@ -132,7 +132,7 @@ export async function enablePushNotifications(): Promise<PushRegistrationResult>
 export async function disablePushNotifications(): Promise<void> {
   if (Platform.OS === 'web') return;
   if (isExpoGo) {
-    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    console.info('[Push Warning] Notificaciones desactivadas en Expo Go');
     return;
   }
   const callable = httpsCallable<{ deviceId: string }, { unregistered: boolean }>(
@@ -146,7 +146,7 @@ export async function disablePushNotifications(): Promise<void> {
 export function observePushTokenChanges(): () => void {
   if (Platform.OS === 'web') return () => undefined;
   if (isExpoGo) {
-    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    console.info('[Push Warning] Notificaciones desactivadas en Expo Go');
     return () => undefined;
   }
 
@@ -186,7 +186,7 @@ export function observePushResponses(
 ): () => void {
   if (Platform.OS === 'web') return () => undefined;
   if (isExpoGo) {
-    console.warn('[Push Warning] Notificaciones desactivadas en Expo Go');
+    console.info('[Push Warning] Notificaciones desactivadas en Expo Go');
     return () => undefined;
   }
 
